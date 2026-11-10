@@ -1,0 +1,20 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - '@ai-sdk/gateway@4.0.142'
+  - '@ai-sdk/groq@4.0.81'
+  - '@ai-sdk/mcp@2.0.96'
+  - '@ai-sdk/provider-utils@5.0.79'
+  - '@ai-sdk/react@4.0.173'
+  - '@better-auth/core@1.7.20'
+  - '@better-auth/drizzle-adapter@1.7.20'
+  - '@better-auth/kysely-adapter@1.7.20'
+  - '@better-auth/memory-adapter@1.7.20'
+  - '@better-auth/mongo-adapter@1.7.20'
+  - '@better-auth/prisma-adapter@1.7.20'
+  - '@better-auth/telemetry@1.7.20'
+  - ai@7.0.169
+  - better-auth@1.7.20
+  - lucide-react@1.71.0
