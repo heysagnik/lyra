@@ -12,12 +12,15 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: [],
+    setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: ["src/lib/**/*.ts"],
       exclude: ["src/lib/db/schema.ts", "**/*.test.ts"],
+      thresholds: {
+        lines: 80,
+      },
     },
   },
 });

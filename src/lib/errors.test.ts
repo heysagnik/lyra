@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { ok, err, makeAppError } from "./errors";
+import { describe, it, expect, vi } from "vitest";
+import { ok, err, makeAppError, logStructuredError } from "./errors";
 
 describe("Result and AppError", () => {
   it("creates successful Result with ok()", () => {
@@ -21,5 +21,16 @@ describe("Result and AppError", () => {
       expect(res.error.message).toBe("Too many requests");
       expect(res.error.retryAfter).toBe(30);
     }
+  });
+
+  it("logs structured error context as JSON", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logStructuredError({
+      userId: "u1",
+      code: "INTERNAL",
+      msg: "Test error log",
+    });
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

@@ -10,15 +10,13 @@ describe("Environment Validation", () => {
   });
 
   it("throws clear error when a required variable is missing", () => {
-    delete process.env.DATABASE_URL;
-
     expect(() => {
       const testSchema = z.object({
         DATABASE_URL: z
           .string({ required_error: "DATABASE_URL is required" })
           .min(1, "DATABASE_URL is required"),
       });
-      testSchema.parse({ DATABASE_URL: process.env.DATABASE_URL });
+      testSchema.parse({ DATABASE_URL: undefined });
     }).toThrow("DATABASE_URL is required");
   });
 
