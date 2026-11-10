@@ -127,3 +127,33 @@ export async function incrementMsgCount(id: string): Promise<void> {
     })
     .where(eq(conversations.id, id));
 }
+
+export async function updateConversationSummaryCas(
+  id: string,
+  expectedVersion: number,
+  data: {
+    summary: string;
+    summaryUpto?: string | null;
+    summarizedCount: number;
+  }
+): Promise<boolean> {
+  const db = getDb();
+  const updated = await db
+    .update(conversations)
+    .set({
+      summary: data.summary,
+      summaryVersion: expectedVersion + 1,
+      summaryUpto: data.summaryUpto,
+      summarizedCount: data.summarizedCount,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(conversations.id, id),
+        eq(conversations.summaryVersion, expectedVersion)
+      )
+    )
+    .returning({ id: conversations.id });
+
+  return updated.length > 0;
+}
