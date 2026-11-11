@@ -15,8 +15,17 @@ export const SNIPPET_MAX_CHARS = 300;
 /** Maximum tool call iterations per turn before forcing text output */
 export const TOOL_MAX_ITERATIONS = 2;
 
-/** Maximum output tokens generation cap for LLM responses */
+/** Maximum output tokens generation cap for LLM responses (standard effort) */
 export const MAX_TOKENS_OUT = 1024;
+
+/** Per-turn effort tiers: tool-loop iterations and output token ceiling */
+export const EFFORT_BUDGET = {
+  low: { iterations: 1, maxTokensOut: 512 },
+  standard: { iterations: TOOL_MAX_ITERATIONS, maxTokensOut: MAX_TOKENS_OUT },
+  max: { iterations: 4, maxTokensOut: 2048 },
+} as const;
+
+export type Effort = keyof typeof EFFORT_BUDGET;
 
 /** Redis search result cache TTL in seconds (5 minutes) */
 export const SEARCH_CACHE_TTL_S = 300;

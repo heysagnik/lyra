@@ -14,7 +14,7 @@ describe("Memory and Context Assembly", () => {
     vi.spyOn(memQueries, "getUserMemories").mockResolvedValue([]);
 
     const ctx = await assemblePromptContext("user-1");
-    expect(ctx.systemPrompt).toContain("You are Aria");
+    expect(ctx.systemPrompt).toContain("You are Lyra");
     expect(ctx.window).toEqual([]);
     expect(ctx.searchDefault).toBe(true);
   });

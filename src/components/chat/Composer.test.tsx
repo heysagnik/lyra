@@ -12,7 +12,6 @@ describe("Composer Component", () => {
         onSend={handleSend}
         isStreaming={false}
         onStop={handleStop}
-        searchDefault={true}
       />
     );
 
@@ -29,18 +28,17 @@ describe("Composer Component", () => {
         onSend={handleSend}
         isStreaming={false}
         onStop={handleStop}
-        searchDefault={true}
       />
     );
 
-    const textarea = screen.getByPlaceholderText("Ask Aria anything…");
+    const textarea = screen.getByPlaceholderText("Send a Message");
     fireEvent.change(textarea, { target: { value: "Hello world" } });
 
     const sendButton = screen.getByLabelText("Send message") as HTMLButtonElement;
     expect(sendButton.disabled).toBe(false);
     fireEvent.click(sendButton);
 
-    expect(handleSend).toHaveBeenCalledWith("Hello world", true);
+    expect(handleSend).toHaveBeenCalledWith("Hello world", true, "primary");
   });
 
   it("shows stop button when isStreaming is true and triggers onStop", () => {
@@ -52,7 +50,6 @@ describe("Composer Component", () => {
         onSend={handleSend}
         isStreaming={true}
         onStop={handleStop}
-        searchDefault={true}
       />
     );
 

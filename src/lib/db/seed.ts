@@ -22,7 +22,7 @@ export async function seedDevData() {
     .insert(conversations)
     .values({
       userId: testUserId,
-      title: "Welcome to Lyra",
+      title: "Welcome to lyra",
       searchDefault: true,
       msgCount: 2,
     })
@@ -41,7 +41,7 @@ export async function seedDevData() {
       conversationId: conv.id,
       role: "assistant",
       content:
-        "I am Aria, a helpful, direct assistant with access to live web search.",
+        "I am Lyra, a helpful, direct assistant with access to live web search.",
       model: "qwen/qwen3.8-27b",
       tokensIn: 45,
       tokensOut: 20,

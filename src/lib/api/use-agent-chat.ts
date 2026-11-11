@@ -87,15 +87,32 @@ export function useAgentChat({
     },
   });
 
-  // Sync initial messages when conversation changes
+  // Sync initial messages when conversation changes. Convert the persisted
+  // { content } shape into UIMessage { parts } so mappedMessages can derive
+  // text from them.
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
-      setMessages(initialMessages as unknown as Parameters<typeof setMessages>[0]);
+      const hydrated = initialMessages.map((m) => {
+        const parts: ChatMessagePart[] = [];
+        if (m.content) {
+          parts.push({ type: "text", text: m.content });
+        }
+        if (m.sources?.length) {
+          parts.push({ type: "data-sources", data: { items: m.sources } });
+        }
+        return { id: m.id, role: m.role, parts };
+      });
+      setMessages(hydrated as unknown as Parameters<typeof setMessages>[0]);
     }
   }, [initialMessages, setMessages]);
 
   const sendMessage = useCallback(
-    async (text: string, searchOverride?: boolean) => {
+    async (
+      text: string,
+      searchOverride?: boolean,
+      modelOverride?: "primary" | "fallback",
+      effortOverride?: "low" | "standard" | "max"
+    ) => {
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
       setCurrentSources([]);
 
@@ -106,6 +123,8 @@ export function useAgentChat({
             conversationId: activeConversationId,
             message: text,
             search,
+            ...(modelOverride ? { model: modelOverride } : {}),
+            ...(effortOverride ? { effort: effortOverride } : {}),
           },
         }
       );

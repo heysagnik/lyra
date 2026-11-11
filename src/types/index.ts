@@ -88,6 +88,10 @@ export interface TurnInput {
   conversationId?: string;
   text: string;
   search?: boolean;
+  /** Which configured Groq model to use for the turn. */
+  model?: "primary" | "fallback";
+  /** Effort tier controlling tool iterations and output ceiling. */
+  effort?: "low" | "standard" | "max";
 }
 
 export interface TurnFinishUsage {

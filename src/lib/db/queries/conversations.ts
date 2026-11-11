@@ -157,3 +157,22 @@ export async function updateConversationSummaryCas(
 
   return updated.length > 0;
 }
+
+/**
+ * Fetch a conversation for the public share page: no user scoping (the UUID
+ * is the capability token). Never expose the owner's userId.
+ */
+export async function getSharedConversation(id: string) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: conversations.id,
+      title: conversations.title,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+    })
+    .from(conversations)
+    .where(eq(conversations.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}

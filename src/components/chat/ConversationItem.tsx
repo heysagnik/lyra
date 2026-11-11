@@ -1,35 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Pencil, Trash2, Check, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MoreHorizontal, Pencil, Trash2, Check, X } from "lucide-react";
 import type { Conversation } from "@/types";
 
 export interface ConversationItemProps {
   conversation: Conversation;
   isActive: boolean;
-  onSelect: (id: string) => void;
   onRename: (id: string, newTitle: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-}
-
-function formatRelativeTime(date: Date | string): string {
-  const d = new Date(date);
-  const now = new Date();
-  const diffHours = (now.getTime() - d.getTime()) / (1000 * 60 * 60);
-
-  if (diffHours < 24 && now.getDate() === d.getDate()) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  if (diffHours < 48) {
-    return "Yesterday";
-  }
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 export function ConversationItem({
   conversation,
   isActive,
-  onSelect,
   onRename,
   onDelete,
 }: ConversationItemProps) {
@@ -37,6 +22,7 @@ export function ConversationItem({
   const [titleInput, setTitleInput] = useState(conversation.title);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const router = useRouter();
 
   const handleSaveRename = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -55,19 +41,28 @@ export function ConversationItem({
     return (
       <form
         onSubmit={handleSaveRename}
-        className="flex items-center gap-1 px-3 py-2"
+        className="flex items-center gap-1 px-2 py-1"
       >
         <input
           type="text"
           autoFocus
+          aria-label="Conversation title"
           value={titleInput}
           onChange={(e) => setTitleInput(e.target.value)}
-          className="flex-1 rounded border border-blue-500 bg-white px-2 py-1 text-xs text-gray-900 focus:outline-none"
+          onBlur={handleSaveRename}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setTitleInput(conversation.title);
+              setIsEditing(false);
+            }
+          }}
+          className="flex-1 rounded-[var(--radius-md)] border border-[var(--accent)] bg-[var(--panel-2)] px-2 py-1.5 text-xs text-[var(--text)] focus:outline-none"
         />
         <button
           type="submit"
-          className="p-1 text-green-600 hover:text-green-700"
+          className="rounded-[var(--radius-md)] p-1.5 text-[var(--accent)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.94]"
           title="Save"
+          aria-label="Save title"
         >
           <Check className="h-3.5 w-3.5" />
         </button>
@@ -77,8 +72,9 @@ export function ConversationItem({
             setTitleInput(conversation.title);
             setIsEditing(false);
           }}
-          className="p-1 text-gray-400 hover:text-gray-600"
+          className="rounded-[var(--radius-md)] p-1.5 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.94]"
           title="Cancel"
+          aria-label="Cancel rename"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -88,20 +84,20 @@ export function ConversationItem({
 
   if (showConfirmDelete) {
     return (
-      <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2 text-xs">
-        <span className="text-red-700">Delete chat?</span>
+      <div className="flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--danger-ground)] px-3 py-2 text-xs">
+        <span className="text-[var(--danger)]">Delete chat?</span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleDelete}
-            className="rounded bg-red-600 px-2 py-0.5 text-white hover:bg-red-700"
+            className="rounded bg-[var(--danger)] px-2 py-0.5 font-medium text-white transition-opacity hover:opacity-90"
           >
-            Yes
+            Delete
           </button>
           <button
             onClick={() => setShowConfirmDelete(false)}
-            className="rounded border border-gray-300 px-2 py-0.5 text-gray-600 hover:bg-gray-100"
+            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
           >
-            No
+            Keep
           </button>
         </div>
       </div>
@@ -109,54 +105,83 @@ export function ConversationItem({
   }
 
   return (
-    <div
-      onMouseEnter={() => setShowMenu(true)}
-      onMouseLeave={() => setShowMenu(false)}
-      onClick={() => onSelect(conversation.id)}
-      className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors ${
-        isActive
-          ? "bg-blue-50 font-medium text-blue-700"
-          : "text-gray-700 hover:bg-gray-100"
-      }`}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <MessageSquare
-          className={`h-3.5 w-3.5 shrink-0 ${
-            isActive ? "text-blue-600" : "text-gray-400"
-          }`}
-        />
-        <span className="truncate">{conversation.title}</span>
+    <div className="group relative">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => router.push(`/chat/${conversation.id}`)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            router.push(`/chat/${conversation.id}`);
+          }
+        }}
+        className={`flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-lg)] px-3 text-left text-sm transition-colors duration-[var(--duration-normal)] ${
+          isActive
+            ? "bg-[var(--panel-3)] text-[var(--text)]"
+            : "text-[var(--text-muted)] hover:bg-[var(--panel-2)] hover:text-[var(--text)]"
+        }`}
+        aria-current={isActive ? "true" : undefined}
+      >
+        <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+
+        {/* More menu trigger, revealed on hover */}
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={showMenu}
+          aria-label={`Options for ${conversation.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMenu(!showMenu);
+          }}
+          className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-faint)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--panel-3)] hover:text-[var(--text)] group-hover:flex"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        {!showMenu && (
-          <span className="text-[11px] text-gray-400 tabular-nums">
-            {formatRelativeTime(conversation.updatedAt)}
-          </span>
-        )}
-
-        {showMenu && (
+      {/* Options menu */}
+      {showMenu && (
+        <>
+          {/* Click-away layer */}
           <div
-            className="flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-40"
+            onClick={() => setShowMenu(false)}
+            aria-hidden
+          />
+          <div
+            role="menu"
+            aria-label={`Options for ${conversation.title}`}
+            className="popover-in absolute right-2 top-full z-50 mt-1 w-40 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-dialog)]"
           >
             <button
-              onClick={() => setIsEditing(true)}
-              className="p-1 text-gray-400 hover:text-gray-600"
-              title="Rename"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(false);
+                setIsEditing(true);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)]"
             >
-              <Pencil className="h-3 w-3" />
+              <Pencil aria-hidden className="h-3.5 w-3.5" />
+              Rename
             </button>
             <button
-              onClick={() => setShowConfirmDelete(true)}
-              className="p-1 text-gray-400 hover:text-red-600"
-              title="Delete"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(false);
+                setShowConfirmDelete(true);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)]"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 aria-hidden className="h-3.5 w-3.5" />
+              Delete
             </button>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { getGroqModel } from "./llm";
 import { assemblePromptContext } from "./memory";
-import { TOOL_MAX_ITERATIONS, MAX_TOKENS_OUT } from "./budget";
+import { EFFORT_BUDGET, type Effort } from "./budget";
 import {
   searchParametersSchema,
   executeWebSearch,
@@ -112,20 +112,22 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
 
     const tools = searchEnabled ? { web_search: customSearchTool } : undefined;
 
-    // 4. streamText with primary model and fallback resilience
-    let activeModelName = getGroqModel(false).modelName;
+    // 4. streamText with the requested model, effort tier, and fallback resilience
+    const effortBudget = EFFORT_BUDGET[(input.effort ?? "standard") as Effort];
+    const requestedFallback = input.model === "fallback";
+    let activeModelName = getGroqModel(requestedFallback).modelName;
     let streamResult;
     try {
-      const primary = getGroqModel(false);
+      const primary = getGroqModel(requestedFallback);
       streamResult = streamText({
         model: primary.model,
         system: ctx.systemPrompt,
         messages,
         tools,
         prepareStep: ({ stepNumber }) =>
-          stepNumber >= TOOL_MAX_ITERATIONS - 1 ? { toolChoice: "none" as const } : undefined,
-        stopWhen: stepCountIs(TOOL_MAX_ITERATIONS),
-        maxOutputTokens: MAX_TOKENS_OUT,
+          stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
+        stopWhen: stepCountIs(effortBudget.iterations),
+        maxOutputTokens: effortBudget.maxTokensOut,
         maxRetries: 2,
         onFinish: async (r) => {
           try {
@@ -189,9 +191,9 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         messages,
         tools,
         prepareStep: ({ stepNumber }) =>
-          stepNumber >= TOOL_MAX_ITERATIONS - 1 ? { toolChoice: "none" as const } : undefined,
-        stopWhen: stepCountIs(TOOL_MAX_ITERATIONS),
-        maxOutputTokens: MAX_TOKENS_OUT,
+          stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
+        stopWhen: stepCountIs(effortBudget.iterations),
+        maxOutputTokens: effortBudget.maxTokensOut,
         maxRetries: 2,
         onFinish: async (r) => {
           try {

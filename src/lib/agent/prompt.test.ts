@@ -6,7 +6,7 @@ describe("Prompt Assembly", () => {
   it("includes exact T0 system prompt", () => {
     const prompt = assembleSystemPrompt([], null);
     expect(prompt).toContain(
-      "You are Aria, a helpful, direct assistant with access to live web search."
+      "You are Lyra, a helpful, direct assistant with access to live web search."
     );
     expect(prompt).toContain("Rules:");
   });

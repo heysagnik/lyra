@@ -29,18 +29,18 @@ function CodeBlock({ className, children }: CodeBlockProps) {
   };
 
   return (
-    <div className="my-3 overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-xs font-mono">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-100 px-3 py-1.5 text-gray-600">
-        <span className="font-medium lowercase">{language || "text"}</span>
+    <div className="font-coordinate my-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--line-soft)] bg-[var(--panel)] text-xs">
+      <div className="flex items-center justify-between border-b border-[var(--line-soft)] px-3 py-1.5 text-[var(--text-faint)]">
+        <span className="lowercase tracking-wide">{language || "text"}</span>
         <button
           onClick={handleCopy}
           aria-label="Copy code"
-          className="flex items-center gap-1 text-[11px] hover:text-gray-900"
+          className="flex items-center gap-1 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--accent)]"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-green-600" />
-              <span className="text-green-600">Copied</span>
+              <Check className="h-3.5 w-3.5 text-[var(--accent)]" />
+              <span className="text-[var(--accent)]">Copied</span>
             </>
           ) : (
             <>
@@ -50,7 +50,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto p-3 text-gray-900">
+      <pre className="hljs overflow-x-auto p-3 leading-relaxed text-[var(--text)]">
         <code>{children}</code>
       </pre>
     </div>
@@ -59,7 +59,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
 
 export function Markdown({ content }: { content: string }) {
   return (
-    <div className="prose prose-sm max-w-none text-gray-900 leading-relaxed break-words">
+    <div className="max-w-none leading-relaxed break-words text-[var(--text)] text-pretty">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, rehypeSanitize]}
@@ -69,7 +69,7 @@ export function Markdown({ content }: { content: string }) {
             if (isInline) {
               return (
                 <code
-                  className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono text-gray-800"
+                  className="font-coordinate rounded bg-[var(--panel-3)] px-1.5 py-0.5 text-[0.85em] text-[var(--text)]"
                   {...props}
                 >
                   {children}
@@ -84,12 +84,63 @@ export function Markdown({ content }: { content: string }) {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-blue-600 underline decoration-blue-300 underline-offset-2 hover:decoration-blue-600"
+                className="font-medium text-[var(--accent)] underline decoration-[var(--accent)]/40 underline-offset-2 transition-colors duration-[var(--duration-normal)] hover:decoration-[var(--accent)]"
               >
                 {children}
               </a>
             );
           },
+          h1: (props) => (
+            <h2
+              className="font-display mt-5 mb-2 text-xl text-[var(--text)]"
+              {...props}
+            />
+          ),
+          h2: (props) => (
+            <h3
+              className="font-display mt-4 mb-2 text-lg text-[var(--text)]"
+              {...props}
+            />
+          ),
+          h3: (props) => (
+            <h4
+              className="mt-3 mb-1.5 text-sm font-semibold tracking-wide text-[var(--text)]"
+              {...props}
+            />
+          ),
+          ul: (props) => (
+            <ul className="my-3 list-disc space-y-1.5 pl-5 marker:text-[var(--color-text-tertiary)]" {...props} />
+          ),
+          ol: (props) => (
+            <ol className="my-3 list-decimal space-y-1.5 pl-5 marker:text-[var(--color-text-tertiary)]" {...props} />
+          ),
+          blockquote: (props) => (
+            <blockquote
+              className="my-3 border-l-2 border-[var(--accent)]/40 pl-3 text-[var(--text-muted)] italic"
+              {...props}
+            />
+          ),
+          table: (props) => (
+            <div className="my-3 overflow-x-auto">
+              <table
+                className="w-full border-collapse border border-[var(--line-soft)] text-xs"
+                {...props}
+              />
+            </div>
+          ),
+          th: (props) => (
+            <th
+              className="font-coordinate border border-[var(--line-soft)] bg-[var(--panel-2)] px-2.5 py-1.5 text-left text-[10px] uppercase tracking-wider text-[var(--text-muted)]"
+              {...props}
+            />
+          ),
+          td: (props) => (
+            <td
+              className="border border-[var(--line-soft)] px-2.5 py-1.5 text-[var(--text)]"
+              {...props}
+            />
+          ),
+          hr: () => <hr className="my-4 border-[var(--line-soft)]" />,
         }}
       >
         {content}

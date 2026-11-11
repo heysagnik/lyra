@@ -7,6 +7,8 @@ const chatRequestBodySchema = z.object({
   conversationId: z.string().uuid().optional(),
   message: z.string().min(1, "Message cannot be empty"),
   search: z.boolean().optional(),
+  model: z.enum(["primary", "fallback"]).optional(),
+  effort: z.enum(["low", "standard", "max"]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
         conversationId: parsed.data.conversationId,
         text: parsed.data.message,
         search: parsed.data.search,
+        model: parsed.data.model,
+        effort: parsed.data.effort,
       },
     });
   } catch {

@@ -1,6 +1,6 @@
 import type { Memory } from "@/types";
 
-export const SYSTEM_PROMPT_T0 = `You are Aria, a helpful, direct assistant with access to live web search.
+export const SYSTEM_PROMPT_T0 = `You are Lyra, a helpful, direct assistant with access to live web search.
 
 Rules:
 - When search results are provided, cite them inline as [1], [2] matching the numbered sources.

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Mail, Lock } from "lucide-react";
 import { signUp } from "@/lib/auth/client";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -39,90 +41,111 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Create your account
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Get started with Lyra Chat Agent
-        </p>
+    <AuthShell
+      title="Create your account"
+      subtitle="Start your first chat with lyra"
+      footer={<>By signing up, you agree to our Terms of Service and Privacy Policy.</>}
+    >
+      {error && (
+        <div
+          role="alert"
+          className="mt-6 rounded-lg border border-[var(--color-danger)]/40 bg-[var(--color-danger-muted)] p-3 text-sm text-[var(--color-danger)]"
+        >
+          {error}
+        </div>
+      )}
 
-        {error && (
-          <div className="mt-4 rounded bg-red-50 p-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-xs font-medium text-gray-700"
-            >
-              Full name
-            </label>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <div>
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-[var(--color-text)]"
+          >
+            Name
+          </label>
+          <div className="relative mt-1.5">
             <input
               id="name"
               type="text"
               required
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+              placeholder="Enter Your Name"
+              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-3 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
+        </div>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-xs font-medium text-gray-700"
-            >
-              Email address
-            </label>
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-[var(--color-text)]"
+          >
+            Email
+          </label>
+          <div className="relative mt-1.5">
+            <Mail
+              aria-hidden
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]"
+            />
             <input
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+              placeholder="Enter Your Email"
+              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
+        </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-xs font-medium text-gray-700"
-            >
-              Password
-            </label>
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-[var(--color-text)]"
+          >
+            Password
+          </label>
+          <div className="relative mt-1.5">
+            <Lock
+              aria-hidden
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]"
+            />
             <input
               id="password"
               type="password"
               required
               minLength={8}
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+              placeholder="At least 8 characters"
+              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Creating account..." : "Sign up"}
-          </button>
-        </form>
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-11 w-full rounded-lg bg-[var(--color-accent)] text-sm font-medium text-[var(--color-on-accent)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+        >
+          {loading ? "Creating account…" : "Sign up"}
+        </button>
+      </form>
 
-        <p className="mt-4 text-center text-xs text-gray-500">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
+        Already have an account?{" "}
+        <Link
+          href="/sign-in"
+          className="font-medium text-[var(--color-update)] hover:underline"
+        >
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
