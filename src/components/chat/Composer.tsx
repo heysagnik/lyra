@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Square, ChevronDown, Check, Plus, X, Paperclip } from "lucide-react";
+import { ArrowUp, Square, ChevronDown, Check, Plus, X } from "lucide-react";
 
 export interface ComposerProps {
   onSend: (text: string, search: boolean, model: "primary" | "fallback") => void;
@@ -23,6 +23,21 @@ const ATTACHABLE_TYPES =
   /^(text\/|application\/(json|xml|javascript|typescript|x-yaml|yaml))$/;
 const MAX_ATTACH_CHARS = 50_000;
 
+function getFileExtension(filename: string): string {
+  const parts = filename.split(".");
+  if (parts.length > 1) {
+    const ext = parts.pop()?.toUpperCase() || "";
+    return ext.slice(0, 4);
+  }
+  return "TXT";
+}
+
+function formatFileSize(bytes?: number): string | null {
+  if (bytes === undefined || isNaN(bytes)) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+}
+
 export function Composer({
   onSend,
   isStreaming,
@@ -34,8 +49,9 @@ export function Composer({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [model, setModel] = useState<"primary" | "fallback">("primary");
   const [attachments, setAttachments] = useState<
-    { name: string; content: string }[]
+    { name: string; content: string; size?: number }[]
   >([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [attachError, setAttachError] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,12 +67,20 @@ export function Composer({
         continue;
       }
       if (next.some((a) => a.name === file.name)) continue;
-      const content = await file.text();
+      const content =
+        typeof file.text === "function"
+          ? await file.text()
+          : await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve((reader.result as string) || "");
+              reader.onerror = reject;
+              reader.readAsText(file);
+            });
       if (content.length > MAX_ATTACH_CHARS) {
         setAttachError(`“${file.name}” is too large to attach (over ~50 KB).`);
         continue;
       }
-      next.push({ name: file.name, content });
+      next.push({ name: file.name, content, size: file.size });
     }
     setAttachments(next);
   };
@@ -123,15 +147,11 @@ export function Composer({
       onStop();
       return;
     }
-    if (!text.trim() || countdown !== undefined) return;
+    if ((!text.trim() && attachments.length === 0) || countdown !== undefined) return;
     let prompt = text.trim();
     for (const a of attachments) {
-      prompt += `
-
-Attached file “${a.name}”:
-\`\`\`
-${a.content}
-\`\`\``;
+      prompt += prompt ? `\n\n` : ``;
+      prompt += `Attached file “${a.name}”:\n\`\`\`\n${a.content}\n\`\`\``;
     }
     onSend(prompt, true, model);
     setText("");
@@ -150,30 +170,70 @@ ${a.content}
   return (
     <div className="w-full">
       <div
-        className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-composer)] transition-[border-color] duration-[var(--duration-normal)] focus-within:border-[var(--color-border-strong)] focus-within:shadow-[var(--shadow-composer-focus)]"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          void handleFiles(e.dataTransfer.files);
+        }}
+        className={`rounded-[22px] border ${
+          isDragging
+            ? "border-[var(--color-focus)] bg-[var(--color-surface-2)] shadow-[var(--shadow-composer-focus)]"
+            : "border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-composer)]"
+        } transition-[border-color,background-color] duration-[var(--duration-normal)] focus-within:border-[var(--color-border-strong)] focus-within:shadow-[var(--shadow-composer-focus)]`}
       >
-        {/* Attachment chips */}
+        {/* Attachment cards matching Claude/Kimi card UX */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-5 pt-3">
-            {attachments.map((a) => (
-              <span
-                key={a.name}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]"
-              >
-                <Paperclip aria-hidden className="h-3 w-3" />
-                <span className="max-w-[160px] truncate">{a.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${a.name}`}
-                  onClick={() =>
-                    setAttachments((prev) => prev.filter((x) => x.name !== a.name))
-                  }
-                  className="rounded-full text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text)]"
+          <div className="flex gap-2.5 overflow-x-auto px-3.5 pt-3.5 pb-1 sm:px-4 scrollbar-none">
+            {attachments.map((a) => {
+              const ext = getFileExtension(a.name);
+              const formattedSize = formatFileSize(a.size);
+              return (
+                <div
+                  key={a.name}
+                  className="group relative flex h-[132px] w-[132px] shrink-0 flex-col justify-between rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-canvas)] p-3 shadow-sm transition-all duration-[var(--duration-fast)] hover:border-white/20 sm:h-[136px] sm:w-[136px] sm:p-3.5"
                 >
-                  <X aria-hidden className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
+                  {/* Top: Name & Remove button */}
+                  <div className="flex items-start justify-between gap-1">
+                    <span
+                      title={a.name}
+                      className="truncate text-[13px] font-medium leading-tight text-[var(--color-text)]"
+                    >
+                      {a.name}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${a.name}`}
+                      onClick={() =>
+                        setAttachments((prev) => prev.filter((x) => x.name !== a.name))
+                      }
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/5 text-[var(--color-text-tertiary)] transition-all hover:bg-white/15 hover:text-[var(--color-text)]"
+                    >
+                      <X aria-hidden className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  {/* Bottom: Extension pill & optional file size */}
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-[var(--color-text-secondary)]">
+                      {ext}
+                    </span>
+                    {formattedSize && (
+                      <span className="text-[10px] text-[var(--color-text-tertiary)] tabular-nums">
+                        {formattedSize}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
         {attachError && (

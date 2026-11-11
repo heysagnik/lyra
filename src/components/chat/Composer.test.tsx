@@ -58,4 +58,31 @@ describe("Composer Component", () => {
     fireEvent.click(stopButton);
     expect(handleStop).toHaveBeenCalled();
   });
+
+  it("renders attachment card with extension pill and removes it on click", async () => {
+    const handleSend = vi.fn();
+    const handleStop = vi.fn();
+
+    render(
+      <Composer
+        onSend={handleSend}
+        isStreaming={false}
+        onStop={handleStop}
+      />
+    );
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["# Documentation"], "AGENT.md", { type: "text/markdown" });
+    file.text = vi.fn().mockResolvedValue("# Documentation");
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(await screen.findByText("AGENT.md")).toBeDefined();
+    expect(screen.getByText("MD")).toBeDefined();
+
+    const removeBtn = screen.getByLabelText("Remove AGENT.md");
+    fireEvent.click(removeBtn);
+
+    expect(screen.queryByText("AGENT.md")).toBeNull();
+  });
 });
