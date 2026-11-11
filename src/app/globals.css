@@ -42,7 +42,7 @@
   --color-on-update: #ffffff;
   --color-scrim: #00000017;
 
-  --color-aura: color-mix(in srgb, var(--color-update) 9%, transparent);
+  --color-aura: color-mix(in srgb, var(--color-update) 12%, transparent);
 
   --font-sans: var(--font-inter), "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, sans-serif;
   --font-display: var(--font-inter), "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;
@@ -80,7 +80,7 @@
 
   --control-height: 36px;
   --header-height: 48px;
-  --composer-max-width: min(52rem, calc(100vw - 3rem));
+  --composer-max-width: min(42rem, calc(100vw - 3rem));
 
   --shadow-dialog: 0 1px 3px #00000012;
   --shadow-composer: 0 1px 2px #0000000d;
@@ -201,7 +201,7 @@
     --color-danger: #fc533a;
     --color-danger-muted: #160f0e;
     --color-code-canvas: #1c1c1c;
-    --color-aura: color-mix(in srgb, var(--color-update) 13%, transparent);
+    --color-aura: color-mix(in srgb, var(--color-update) 16%, transparent);
     --shadow-dialog: 0 20px 56px rgba(0, 0, 0, 0.6);
     --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
     --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -244,7 +244,7 @@
   --color-update-hover: #389eff;
   --color-on-update: #161616;
   --color-scrim: #00000068;
-  --color-aura: color-mix(in srgb, var(--color-update) 13%, transparent);
+  --color-aura: color-mix(in srgb, var(--color-update) 16%, transparent);
   --shadow-dialog: 0 20px 56px rgba(0, 0, 0, 0.6);
   --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
   --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -464,6 +464,24 @@ input:focus {
   animation: thinking-dot 1.2s ease-in-out infinite;
 }
 
+/* Ambient empty state aura gentle breathing */
+@keyframes aura-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.04) translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.aura-breathe {
+  animation: aura-breathe 14s ease-in-out infinite;
+  transform-origin: 50% 45%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise-in,
   .popover-in,
@@ -471,7 +489,8 @@ input:focus {
   .popover-in-left,
   .fade-in,
   .toast-in,
-  .thinking-star {
+  .thinking-star,
+  .aura-breathe {
     animation: none;
   }
 

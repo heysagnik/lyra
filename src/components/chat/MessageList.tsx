@@ -64,7 +64,7 @@ export function MessageList({
         onScroll={handleScroll}
         className="h-full overflow-y-auto overscroll-contain px-4 py-6 pb-36 sm:pb-40"
       >
-        <div className="mx-auto max-w-[50rem]">
+        <div className="mx-auto max-w-[40rem]">
           {visibleMessages.map((msg, idx) => (
             <MessageBubble
               key={msg.id || idx}

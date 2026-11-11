@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { PanelLeft, ChevronDown, Share, Check, Pencil, Trash2, Plus } from "lucide-react";
+import { PanelLeft, ChevronDown, Share, Check, Pencil, Trash2 } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
@@ -287,19 +287,6 @@ export function ChatContainer({
                 )}
               </button>
             )}
-
-            <button
-              onClick={() => {
-                setActiveId(undefined);
-                router.push("/");
-              }}
-              aria-label="New chat"
-              title="Start a new chat"
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.94] sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs font-medium text-[var(--color-text)] sm:text-sm">New</span>
-            </button>
           </div>
 
           {/* Title dropdown menu */}
@@ -351,7 +338,7 @@ export function ChatContainer({
           <>
             <EmptyState />
             <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
-              <div className="pointer-events-auto w-full max-w-[50rem]">{composer}</div>
+              <div className="pointer-events-auto w-full max-w-2xl">{composer}</div>
             </div>
           </>
         ) : (
@@ -363,7 +350,7 @@ export function ChatContainer({
             />
 
             <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
-              <div className="pointer-events-auto w-full max-w-[50rem]">{composer}</div>
+              <div className="pointer-events-auto w-full max-w-2xl">{composer}</div>
             </div>
           </>
         )}

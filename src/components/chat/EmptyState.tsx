@@ -13,41 +13,87 @@ function getGreeting(date: Date): string {
   return "Good night";
 }
 
+function getSubtitle(date: Date): string {
+  const h = date.getHours();
+  if (h < 5 || h >= 21) return "How can I help you tonight?";
+  return "How can I help you today?";
+}
+
 export function EmptyState() {
   const { data: session } = useSession();
-  const [greeting] = useState(() => getGreeting(new Date()));
+  const [greeting, setGreeting] = useState(() => getGreeting(new Date()));
+  const [subtitle, setSubtitle] = useState(() => getSubtitle(new Date()));
   const name = session?.user?.name?.trim();
 
   useEffect(() => {
     document.title = "lyra — chat agent";
+    setGreeting(getGreeting(new Date()));
+    setSubtitle(getSubtitle(new Date()));
   }, []);
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-4 pb-28 sm:pb-32">
+      {/* Ambient ethereal aura gradients with subtle chromatic depth */}
       <div
         aria-hidden
-        className="fade-in pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(52% 40% at 50% 42%, var(--color-aura) 0%, transparent 70%)",
-        }}
-      />
-
-      <h1
-        style={{ fontFamily: "var(--font-wordmark)" }}
-        className="rise-in relative flex flex-col items-center justify-center gap-2.5 text-center text-3xl font-medium tracking-[-0.01em] text-[var(--color-text)] sm:flex-row sm:gap-3.5 sm:text-5xl"
-        aria-label={`${greeting}${name ? `, ${name}` : ""}`}
+        className="fade-in pointer-events-none absolute inset-0 select-none overflow-hidden"
       >
-        <Asterisk
-          aria-hidden
-          strokeWidth={2}
-          className="h-8 w-8 shrink-0 text-[var(--color-text)] sm:h-9 sm:w-9"
+        <div
+          className="aura-breathe absolute inset-0"
+          style={{
+            background: [
+              // Core luminous bloom directly centered behind the 2-liner heading
+              "radial-gradient(ellipse 58% 44% at 50% 45%, color-mix(in srgb, var(--color-accent) 22%, var(--color-aura)) 0%, color-mix(in srgb, var(--color-aura) 55%, transparent) 42%, transparent 74%)",
+              // Soft azure / sky atmospheric light offset to top-left
+              "radial-gradient(ellipse 44% 34% at 36% 38%, color-mix(in srgb, var(--color-update) 18%, transparent) 0%, transparent 68%)",
+              // Soft violet / orchid ambient bloom offset to center-right
+              "radial-gradient(ellipse 46% 36% at 64% 46%, color-mix(in srgb, #9333ea 14%, color-mix(in srgb, var(--color-accent) 18%, transparent)) 0%, transparent 68%)",
+              // Gentle warm champagne / rose accent whisper
+              "radial-gradient(ellipse 36% 28% at 52% 35%, color-mix(in srgb, #f472b6 9%, transparent) 0%, transparent 70%)",
+              // Wide atmospheric dispersion
+              "radial-gradient(ellipse 85% 65% at 50% 48%, color-mix(in srgb, var(--color-aura) 70%, transparent) 0%, transparent 82%)",
+            ].join(", "),
+            maskImage:
+              "radial-gradient(ellipse 88% 76% at 50% 46%, black 35%, transparent 95%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 88% 76% at 50% 46%, black 35%, transparent 95%)",
+          }}
         />
-        <span className="text-[var(--color-text)]">
-          {greeting}
-          {name ? `, ${name}` : ""}
-        </span>
-      </h1>
+
+        {/* Subtle top-down atmospheric sheen */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 5%, transparent) 0%, transparent 45%)",
+          }}
+        />
+      </div>
+
+      <div className="rise-in relative flex flex-col items-center justify-center gap-2 text-center sm:gap-3">
+        <h1
+          suppressHydrationWarning
+          style={{ fontFamily: "var(--font-wordmark)" }}
+          className="flex items-center justify-center gap-2.5 text-3xl font-medium tracking-[-0.015em] text-[var(--color-text)] sm:gap-3.5 sm:text-5xl"
+          aria-label={`${greeting}${name ? `, ${name}` : ""}`}
+        >
+          <Asterisk
+            aria-hidden
+            strokeWidth={2}
+            className="h-7 w-7 shrink-0 text-[var(--color-accent)] sm:h-9 sm:w-9"
+          />
+          <span suppressHydrationWarning className="text-[var(--color-text)]">
+            {greeting}
+            {name ? `, ${name}` : ""}
+          </span>
+        </h1>
+        <p
+          suppressHydrationWarning
+          className="text-xl font-normal tracking-[-0.01em] text-[var(--color-text-secondary)] sm:text-2xl"
+        >
+          {subtitle}
+        </p>
+      </div>
     </div>
   );
 }
