@@ -26,15 +26,9 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z
     .string({ required_error: "UPSTASH_REDIS_REST_TOKEN is required" })
     .min(1, "UPSTASH_REDIS_REST_TOKEN is required"),
-  QSTASH_TOKEN: z
-    .string({ required_error: "QSTASH_TOKEN is required" })
-    .min(1, "QSTASH_TOKEN is required"),
-  QSTASH_CURRENT_SIGNING_KEY: z
-    .string({ required_error: "QSTASH_CURRENT_SIGNING_KEY is required" })
-    .min(1, "QSTASH_CURRENT_SIGNING_KEY is required"),
-  QSTASH_NEXT_SIGNING_KEY: z
-    .string({ required_error: "QSTASH_NEXT_SIGNING_KEY is required" })
-    .min(1, "QSTASH_NEXT_SIGNING_KEY is required"),
+  QSTASH_TOKEN: z.string().optional().default(""),
+  QSTASH_CURRENT_SIGNING_KEY: z.string().optional().default(""),
+  QSTASH_NEXT_SIGNING_KEY: z.string().optional().default(""),
   WORKER_SECRET: z
     .string({ required_error: "WORKER_SECRET is required" })
     .min(16, "WORKER_SECRET must be at least 16 characters"),

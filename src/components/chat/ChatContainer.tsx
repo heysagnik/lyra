@@ -188,8 +188,9 @@ export function ChatContainer({
                 <PanelLeft className="h-[18px] w-[18px]" />
               </button>
             </header>
-            <div className="flex flex-1 flex-col items-center justify-center px-4 pb-16">
-              {composer}
+            <div className="flex flex-1 flex-col items-center justify-center px-4" />
+            <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-4">
+              <div className="w-full max-w-[50rem]">{composer}</div>
             </div>
           </>
         ) : (
@@ -333,7 +334,9 @@ export function ChatContainer({
               onRegenerate={handleRegenerate}
             />
 
-            <div className="shrink-0 pb-4">{composer}</div>
+            <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-4">
+              <div className="w-full max-w-[50rem]">{composer}</div>
+            </div>
           </>
         )}
       </main>

@@ -23,8 +23,11 @@ export function MessageList({
   const isUserScrollingRef = useRef(false);
 
   const scrollToBottom = useCallback((smooth = true) => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
     bottomAnchorRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "auto",
+      behavior: smooth && !reduceMotion ? "smooth" : "auto",
     });
     setShowScrollBottomPill(false);
   }, []);
@@ -55,31 +58,35 @@ export function MessageList({
   const visibleMessages = messages.slice(-200);
 
   return (
-    <div
-      ref={scrollContainerRef}
-      onScroll={handleScroll}
-      className="relative flex-1 overflow-y-auto px-4 py-6"
-    >
-      <div className="mx-auto max-w-3xl">
-        {visibleMessages.map((msg, idx) => (
-          <MessageBubble
-            key={msg.id || idx}
-            message={msg}
-            isLatestStreaming={isStreaming && idx === visibleMessages.length - 1}
-            onRegenerate={
-              !isStreaming && onRegenerate && idx === visibleMessages.length - 1
-                ? onRegenerate
-                : undefined
-            }
-          />
-        ))}
-        <div ref={bottomAnchorRef} className="h-4" />
+    <div className="relative min-h-0 flex-1">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto px-4 py-6 pb-28"
+      >
+        <div className="mx-auto max-w-[50rem]">
+          {visibleMessages.map((msg, idx) => (
+            <MessageBubble
+              key={msg.id || idx}
+              message={msg}
+              isLatestStreaming={isStreaming && idx === visibleMessages.length - 1}
+              onRegenerate={
+                !isStreaming && onRegenerate && idx === visibleMessages.length - 1
+                  ? onRegenerate
+                  : undefined
+              }
+            />
+          ))}
+          <div ref={bottomAnchorRef} className="h-4" />
+        </div>
       </div>
 
       {showScrollBottomPill && (
         <button
+          type="button"
           onClick={() => scrollToBottom(true)}
-          className="rise-in fixed bottom-28 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel-2)] px-3 py-1.5 text-xs font-medium text-[var(--text)] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.8)] transition-colors duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.97]"
+          aria-label="Jump to the latest message"
+          className="rise-in absolute bottom-36 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel-2)] py-1.5 pl-2.5 pr-3 text-xs font-medium text-[var(--text)] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.8)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.97]"
         >
           <ArrowDown className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span>Jump to latest</span>

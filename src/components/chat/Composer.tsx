@@ -148,7 +148,7 @@ ${a.content}
   const modelLabel = MODELS.find((m) => m.id === model)?.label ?? "";
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4">
+    <div className="w-full">
       <div
         className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-composer)] transition-[border-color] duration-[var(--duration-normal)] focus-within:border-[var(--color-border-strong)] focus-within:shadow-[var(--shadow-composer-focus)]"
       >
