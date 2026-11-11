@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PanelLeft, ChevronDown, Share, Check, Pencil, Trash2 } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
+import { EmptyState } from "./EmptyState";
 import { Composer } from "./Composer";
 import { Toast } from "./Toast";
 import { useAgentChat } from "@/lib/api/use-agent-chat";
@@ -191,8 +192,10 @@ export function ChatContainer({
                 <PanelLeft className="h-[18px] w-[18px]" />
               </button>
             </header>
-            <div className="flex flex-1 flex-col items-center justify-center px-4" />
-            <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-4">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+              <EmptyState />
+            </div>
+            <div className="shrink-0 flex justify-center px-4 pb-4">
               <div className="w-full max-w-[50rem]">{composer}</div>
             </div>
           </>
@@ -337,7 +340,7 @@ export function ChatContainer({
               onRegenerate={handleRegenerate}
             />
 
-            <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-4">
+            <div className="shrink-0 flex justify-center px-4 pb-4">
               <div className="w-full max-w-[50rem]">{composer}</div>
             </div>
           </>
