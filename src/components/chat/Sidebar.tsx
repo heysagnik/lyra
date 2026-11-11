@@ -66,6 +66,7 @@ export interface SidebarProps {
   onDeleteConversation: (id: string) => Promise<void>;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  isLayoutReady?: boolean;
 }
 
 export function Sidebar({
@@ -75,6 +76,7 @@ export function Sidebar({
   onDeleteConversation,
   isOpenMobile,
   onCloseMobile,
+  isLayoutReady = true,
 }: SidebarProps) {
   const [filter, setFilter] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -147,13 +149,13 @@ export function Sidebar({
 
       {/* Sidebar panel */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-full flex-col overflow-hidden bg-[var(--panel)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-[var(--panel)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
           isOpenMobile ? "translate-x-0 md:w-[280px]" : "-translate-x-full md:w-0"
-        }`}
+        } ${isLayoutReady ? "" : "max-md:hidden"}`}
         aria-label="Conversation index"
       >
         {/* Wordmark row */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <div className="flex h-12 shrink-0 items-center justify-between px-4">
           <h1 className="flex items-center">
             <Wordmark className="text-xl">
               <LogoMark className="h-6 w-6" />
@@ -170,7 +172,7 @@ export function Sidebar({
           <span aria-hidden className="hidden md:block md:w-1" />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 pb-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
           {/* New */}
           <button
             onClick={() => router.push("/")}
@@ -239,7 +241,7 @@ export function Sidebar({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[var(--line-soft)] p-3">
+        <div className="shrink-0 border-t border-[var(--line-soft)] p-3">
           <div ref={accountMenuRef} className="relative">
             {accountMenuOpen && (
               <div

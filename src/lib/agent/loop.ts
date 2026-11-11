@@ -110,7 +110,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       },
     });
 
-    const tools = searchEnabled ? { web_search: customSearchTool } : undefined;
+    const tools = { web_search: customSearchTool };
 
     // 4. streamText with the requested model, effort tier, and fallback resilience
     const effortBudget = EFFORT_BUDGET[(input.effort ?? "standard") as Effort];

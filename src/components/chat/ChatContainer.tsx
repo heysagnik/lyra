@@ -25,10 +25,12 @@ export function ChatContainer({
   const queryClient = useQueryClient();  const [activeId, setActiveId] = useState<string | undefined>(
     initialConversationId
   );
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
 
   useEffect(() => {
     setIsSidebarOpen(window.innerWidth >= 768);
+    setIsLayoutReady(true);
   }, []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<{
@@ -160,7 +162,7 @@ export function ChatContainer({
   );
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--bg)]">
+    <div className="flex h-dvh w-full overflow-hidden bg-[var(--bg)]">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
@@ -172,10 +174,11 @@ export function ChatContainer({
         }}
         isOpenMobile={isSidebarOpen}
         onCloseMobile={() => setIsSidebarOpen(false)}
+        isLayoutReady={isLayoutReady}
       />
 
       {/* Main column */}
-      <main className="relative flex flex-1 flex-col overflow-hidden">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {isEmpty ? (
           <>
             <header className="relative flex h-12 shrink-0 items-center gap-1 px-4">
