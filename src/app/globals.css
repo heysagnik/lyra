@@ -42,6 +42,8 @@
   --color-on-update: #ffffff;
   --color-scrim: #00000017;
 
+  --color-aura: color-mix(in srgb, var(--color-update) 9%, transparent);
+
   --font-sans: var(--font-inter), "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, sans-serif;
   --font-display: var(--font-inter), "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
@@ -199,6 +201,7 @@
     --color-danger: #fc533a;
     --color-danger-muted: #160f0e;
     --color-code-canvas: #1c1c1c;
+    --color-aura: color-mix(in srgb, var(--color-update) 13%, transparent);
     --shadow-dialog: 0 20px 56px rgba(0, 0, 0, 0.6);
     --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
     --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -241,6 +244,7 @@
   --color-update-hover: #389eff;
   --color-on-update: #161616;
   --color-scrim: #00000068;
+  --color-aura: color-mix(in srgb, var(--color-update) 13%, transparent);
   --shadow-dialog: 0 20px 56px rgba(0, 0, 0, 0.6);
   --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
   --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
