@@ -47,13 +47,14 @@ function ThemePreview({ mode }: { mode: ThemeValue }) {
 }
 
 export default function AppearanceSettingsPage() {
-  const [theme, setTheme] = useState<ThemeValue>("dark");
+  const [theme, setTheme] = useState<ThemeValue>("light");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === "light" || saved === "system" || saved === "dark") {
         setTheme(saved);
+        document.documentElement.dataset.theme = saved;
       }
     } catch {
       // ignore

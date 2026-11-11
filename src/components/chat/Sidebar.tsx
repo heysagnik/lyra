@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,56 +8,12 @@ import {
   X,
   Search,
   Settings,
-  LogOut,
 } from "lucide-react";
 import { ConversationItem } from "./ConversationItem";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Wordmark } from "@/components/brand/Wordmark";
-import { signOut, useSession } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/client";
 import type { Conversation } from "@/types";
-
-function AsteriskIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 256 256"
-      aria-hidden
-      className={className}
-      fill="none"
-    >
-      <line
-        x1="128"
-        y1="40"
-        x2="128"
-        y2="216"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="16"
-      />
-      <line
-        x1="48"
-        y1="80"
-        x2="208"
-        y2="176"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="16"
-      />
-      <line
-        x1="48"
-        y1="176"
-        x2="208"
-        y2="80"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="16"
-      />
-    </svg>
-  );
-}
 
 export interface SidebarProps {
   conversations: Conversation[];
@@ -80,39 +36,10 @@ export function Sidebar({
 }: SidebarProps) {
   const [filter, setFilter] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const name = session?.user?.name;
-  const email = session?.user?.email;
   const initial = (name?.trim()?.[0] ?? "L").toUpperCase();
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/sign-in";
-  };
-
-  // Dismiss the account menu on outside click or Escape
-  useEffect(() => {
-    if (!accountMenuOpen) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!accountMenuRef.current?.contains(event.target as Node)) {
-        setAccountMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAccountMenuOpen(false);
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [accountMenuOpen]);
 
   // Global shortcuts: Ctrl+K starts a new chat, Ctrl+Shift+, opens settings
   useEffect(() => {
@@ -142,7 +69,7 @@ export function Sidebar({
       {isLayoutReady && isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fade-in fixed inset-0 z-40 bg-black/60 md:hidden"
+          className="fade-in fixed inset-0 z-40 bg-[var(--color-scrim)] md:hidden"
           style={{ backdropFilter: "blur(2px)" }}
         />
       )}
@@ -165,7 +92,7 @@ export function Sidebar({
           <button
             onClick={onCloseMobile}
             aria-label="Close sidebar"
-            className="rounded-[var(--radius-md)] p-1 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.94] md:hidden"
+            className="rounded-[var(--radius-md)] p-1 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.96] md:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -176,7 +103,7 @@ export function Sidebar({
           {/* New */}
           <button
             onClick={() => router.push("/")}
-            className="mt-1 flex w-full items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--panel-2)] px-3 py-2 text-sm font-medium text-[var(--text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.98]"
+            className="mt-1 flex w-full items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--panel-2)] px-3 py-2 text-sm font-medium text-[var(--text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.96]"
           >
             <Plus className="h-4 w-4" />
             New
@@ -240,54 +167,11 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="shrink-0 border-t border-[var(--line-soft)] p-3">
-          <div ref={accountMenuRef} className="relative">
-            {accountMenuOpen && (
-              <div
-                role="menu"
-                aria-label="Account menu"
-                className="popover-in-up absolute inset-x-0 bottom-full z-[var(--z-overlay)] mb-2 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] p-1.5 shadow-[var(--shadow-dialog)]"
-              >
-                <p className="truncate px-2.5 py-1.5 text-xs text-[var(--text-faint)]">
-                  {email || name || "Signed in"}
-                </p>
-                <div className="mx-1.5 my-1 h-px bg-[var(--color-border)]" />
-
-                <Link
-                  href="/settings/account"
-                  role="menuitem"
-                  onClick={() => setAccountMenuOpen(false)}
-                  className="flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--panel-2)] hover:text-[var(--text)]"
-                >
-                  <Settings aria-hidden className="h-4 w-4" />
-                  Settings
-                  <span className="ml-auto text-xs text-[var(--text-faint)]">
-                    Ctrl+Shift+,
-                  </span>
-                </Link>
-
-                <div className="mx-1.5 my-1 h-px bg-[var(--color-border)]" />
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={handleSignOut}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--panel-2)] hover:text-[var(--text)]"
-                >
-                  <LogOut aria-hidden className="h-4 w-4" />
-                  Log out
-                </button>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setAccountMenuOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={accountMenuOpen}
-              aria-label={`Account menu for ${name || "lyra"}`}
-              className="flex w-full items-center gap-2.5 rounded-[var(--radius-lg)] px-1 py-1 text-left transition-colors duration-[var(--duration-fast)] hover:bg-[var(--panel-2)]"
+        <div className="shrink-0 border-t border-[var(--color-border)] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href="/settings/account"
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[var(--radius-lg)] p-1 text-left transition-colors duration-[var(--duration-fast)] hover:bg-[var(--panel-2)]"
             >
               <span
                 aria-hidden
@@ -298,11 +182,16 @@ export function Sidebar({
               <span className="min-w-0 flex-1 truncate text-sm text-[var(--text)]">
                 {name || "lyra"}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--color-warning)_22%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-canvas))] px-2.5 py-1 text-[13px] font-medium text-[#f2ead9] shadow-[inset_0_1px_0_rgb(255_255_255/6%)]">
-                <AsteriskIcon className="h-3.5 w-3.5 text-[#e6a23c]" />
-                Pro
-              </span>
-            </button>
+            </Link>
+
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              title="Settings"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-lg)] text-[var(--text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--panel-2)] hover:text-[var(--text)] active:scale-[0.96]"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </aside>

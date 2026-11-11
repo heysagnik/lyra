@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { ThemeInitializer } from "@/components/providers/ThemeInitializer";
 
 const inter = localFont({
   src: "./fonts/InterVariable.woff2",
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#141414",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -31,6 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full ${inter.variable}`} suppressHydrationWarning>
+      <ThemeInitializer />
       <body className="h-full min-h-full antialiased overscroll-none">{children}</body>
     </html>
   );

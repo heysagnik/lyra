@@ -254,7 +254,7 @@ export default function AccountSettingsPage() {
       <button
         type="button"
         onClick={handleSignOut}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-xl)] bg-[var(--color-surface-2)] text-sm font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-xl)] bg-[var(--color-surface-2)] text-sm font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
       >
         <LogOut aria-hidden className="h-4 w-4" />
         Log out

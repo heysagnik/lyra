@@ -188,14 +188,14 @@ export function ChatContainer({
       {/* Main column */}
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Persistent top header */}
-        <header className="relative z-30 flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--bg)]/95 px-3 backdrop-blur-md sm:h-12 sm:px-4">
+        <header className="relative z-30 flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--bg)] px-3 sm:h-12 sm:px-4">
           {/* Left section: Sidebar toggle & Title / Brand */}
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={() => setIsSidebarOpen((v) => !v)}
               aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
               aria-expanded={isSidebarOpen}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.94]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.96]"
             >
               <PanelLeft className="h-[18px] w-[18px]" />
             </button>
@@ -238,7 +238,7 @@ export function ChatContainer({
                 onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
                 aria-haspopup="menu"
                 aria-expanded={headerMenuOpen}
-                className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.97]"
+                className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
               >
                 <h1 className="truncate max-w-[170px] text-sm font-medium text-[var(--color-text)] sm:max-w-md sm:text-[15px]">
                   {activeConv?.title || "New chat"}
@@ -271,7 +271,7 @@ export function ChatContainer({
                 }}
                 aria-label="Share chat"
                 title="Copy a public read-only link to this chat"
-                className="flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-xs font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.97] disabled:opacity-50 sm:px-3 sm:text-sm"
+                className="flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-xs font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96] disabled:opacity-50 sm:px-3 sm:text-sm"
                 disabled={!activeId}
               >
                 {shared ? (
@@ -298,7 +298,7 @@ export function ChatContainer({
               className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.94] sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs font-medium text-[var(--color-text)]">New</span>
+              <span className="hidden sm:inline text-xs font-medium text-[var(--color-text)] sm:text-sm">New</span>
             </button>
           </div>
 
@@ -322,7 +322,7 @@ export function ChatContainer({
                     setHeaderTitle(activeConv?.title ?? "");
                     setIsRenamingHeader(true);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
+                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
                 >
                   <Pencil aria-hidden className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
                   Rename
@@ -337,7 +337,7 @@ export function ChatContainer({
                       router.push("/");
                     }
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
+                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.96]"
                 >
                   <Trash2 aria-hidden className="h-3.5 w-3.5" />
                   Delete
@@ -349,9 +349,7 @@ export function ChatContainer({
 
         {isEmpty ? (
           <>
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-28 sm:pb-32">
-              <EmptyState />
-            </div>
+            <EmptyState />
             <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
               <div className="pointer-events-auto w-full max-w-[50rem]">{composer}</div>
             </div>

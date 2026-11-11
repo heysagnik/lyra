@@ -198,7 +198,7 @@ export function Composer({
               return (
                 <div
                   key={a.name}
-                  className="group relative flex h-[132px] w-[132px] shrink-0 flex-col justify-between rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-canvas)] p-3 shadow-sm transition-all duration-[var(--duration-fast)] hover:border-white/20 sm:h-[136px] sm:w-[136px] sm:p-3.5"
+                  className="group relative flex h-[132px] w-[132px] shrink-0 flex-col justify-between rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-canvas)] p-3 shadow-sm transition-[border-color,background-color,transform] duration-[var(--duration-fast)] hover:border-[var(--color-accent)]/30 sm:h-[136px] sm:w-[136px] sm:p-3.5"
                 >
                   {/* Top: Name & Remove button */}
                   <div className="flex items-start justify-between gap-1">
@@ -214,7 +214,7 @@ export function Composer({
                       onClick={() =>
                         setAttachments((prev) => prev.filter((x) => x.name !== a.name))
                       }
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/5 text-[var(--color-text-tertiary)] transition-all hover:bg-white/15 hover:text-[var(--color-text)]"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-muted)] text-[var(--color-text-tertiary)] transition-[background-color,color] duration-[var(--duration-fast)] hover:bg-[var(--color-accent)]/15 hover:text-[var(--color-text)]"
                     >
                       <X aria-hidden className="h-3 w-3" />
                     </button>
@@ -222,7 +222,7 @@ export function Composer({
 
                   {/* Bottom: Extension pill & optional file size */}
                   <div className="flex items-center justify-between">
-                    <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-[var(--color-text-secondary)]">
+                    <span className="rounded-full border border-[var(--color-border)]/40 bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-[var(--color-text-secondary)]">
                       {ext}
                     </span>
                     {formattedSize && (
@@ -289,7 +289,7 @@ export function Composer({
                 aria-haspopup="listbox"
                 aria-expanded={pickerOpen}
                 onClick={() => setPickerOpen(!pickerOpen)}
-                className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.97]"
+                className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
               >
                 <span>{modelLabel}</span>
                 <ChevronDown

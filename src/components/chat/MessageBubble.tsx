@@ -116,7 +116,7 @@ export function MessageBubble({
             onClick={handleCopy}
             aria-label="Copy message"
             title="Copy"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.94]"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
           >
             {copied ? (
               <Check aria-hidden className="h-3.5 w-3.5 text-[var(--color-success)]" />

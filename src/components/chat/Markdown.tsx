@@ -92,13 +92,13 @@ export function Markdown({ content }: { content: string }) {
           },
           h1: (props) => (
             <h2
-              className="font-display mt-5 mb-2 text-xl text-[var(--text)]"
+              className="font-display mt-5 mb-2 text-xl text-[var(--text)] text-wrap-balance"
               {...props}
             />
           ),
           h2: (props) => (
             <h3
-              className="font-display mt-4 mb-2 text-lg text-[var(--text)]"
+              className="font-display mt-4 mb-2 text-lg text-[var(--text)] text-wrap-balance"
               {...props}
             />
           ),

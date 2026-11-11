@@ -60,7 +60,7 @@ export function ConversationItem({
         />
         <button
           type="submit"
-          className="rounded-[var(--radius-md)] p-1.5 text-[var(--accent)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.94]"
+          className="rounded-[var(--radius-md)] p-1.5 text-[var(--accent)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.96]"
           title="Save"
           aria-label="Save title"
         >
@@ -72,7 +72,7 @@ export function ConversationItem({
             setTitleInput(conversation.title);
             setIsEditing(false);
           }}
-          className="rounded-[var(--radius-md)] p-1.5 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.94]"
+          className="rounded-[var(--radius-md)] p-1.5 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.96]"
           title="Cancel"
           aria-label="Cancel rename"
         >
@@ -89,7 +89,7 @@ export function ConversationItem({
         <div className="flex items-center gap-1">
           <button
             onClick={handleDelete}
-            className="rounded bg-[var(--danger)] px-2 py-0.5 font-medium text-white transition-opacity hover:opacity-90"
+            className="rounded bg-[var(--danger)] px-2 py-0.5 font-medium text-[var(--color-on-danger)] transition-opacity hover:opacity-90"
           >
             Delete
           </button>

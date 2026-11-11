@@ -106,7 +106,7 @@ export default async function SharedChatPage({
           </h2>
           <Link
             href="/"
-            className="mx-auto mt-5 flex h-12 max-w-sm items-center justify-center rounded-full bg-[var(--color-text)] text-sm font-semibold text-[var(--color-text-inverse)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.98]"
+            className="mx-auto mt-5 flex h-12 max-w-sm items-center justify-center rounded-full bg-[var(--color-text)] text-sm font-semibold text-[var(--color-text-inverse)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
           >
             Open lyra
           </Link>
