@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { memories } from "@/lib/db/schema";
 import type { Memory, MemoryKind } from "@/types";
@@ -68,13 +68,10 @@ export async function upsertMemory(data: {
 export async function touchMemories(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const db = getDb();
-  const now = new Date();
-  for (const id of ids) {
-    await db
-      .update(memories)
-      .set({ lastUsedAt: now })
-      .where(eq(memories.id, id));
-  }
+  await db
+    .update(memories)
+    .set({ lastUsedAt: new Date() })
+    .where(inArray(memories.id, ids));
 }
 
 export async function deleteMemory(id: string, userId: string): Promise<boolean> {

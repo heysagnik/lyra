@@ -44,3 +44,23 @@ export const MAX_INFLIGHT = 2;
 
 /** Total expected prompt tokens ceiling across T0-T4 tiers (~2.6k tokens) */
 export const TARGET_PROMPT_TOKENS = 2600;
+
+/**
+ * Model pricing per 1,000,000 tokens (USD).
+ */
+export const MODEL_PRICING: Record<string, { inPer1M: number; outPer1M: number }> = {
+  default: { inPer1M: 0.05, outPer1M: 0.20 },
+  "qwen/qwen3.8-27b": { inPer1M: 0.05, outPer1M: 0.20 },
+  "openai/gpt-oss-20b": { inPer1M: 0.10, outPer1M: 0.30 },
+};
+
+export function calculateTurnCostUsd(
+  model?: string,
+  tokensIn = 0,
+  tokensOut = 0
+): string {
+  const rates = (model && MODEL_PRICING[model]) || MODEL_PRICING.default;
+  const cost =
+    (tokensIn / 1_000_000) * rates.inPer1M + (tokensOut / 1_000_000) * rates.outPer1M;
+  return cost.toFixed(6);
+}

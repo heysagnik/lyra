@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { getGroqModel } from "./llm";
 import { assemblePromptContext } from "./memory";
-import { EFFORT_BUDGET, type Effort } from "./budget";
+import { EFFORT_BUDGET, calculateTurnCostUsd, type Effort } from "./budget";
 import {
   searchParametersSchema,
   executeWebSearch,
@@ -33,7 +33,7 @@ export interface RunTurnOptions {
 export async function runTurn({ request, input }: RunTurnOptions): Promise<Response> {
   const startTime = Date.now();
 
-  // 1. Session check
+  
   const userResult = await requireUser(request);
   if (!userResult.ok) {
     return new Response(JSON.stringify({ error: userResult.error.message }), {
@@ -43,7 +43,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
   }
   const user = userResult.value;
 
-  // 2. Rate limiters
+  
   const limitGate = await checkRateLimits(user.id);
   if (!limitGate.ok) {
     return new Response(
@@ -64,7 +64,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
   let releaseInFlight = limitGate.release;
 
   try {
-    // 3. Conversation & prompt assembly
+    
     let conv = input.conversationId
       ? await getConversation(input.conversationId, user.id)
       : null;
@@ -91,7 +91,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     });
     await incrementMsgCount(conversationId);
 
-    const ctx = await assemblePromptContext(user.id, conversationId);
+    const ctx = await assemblePromptContext(user.id, conversationId, searchEnabled);
     const messages = [
       ...ctx.window,
       { role: "user" as const, content: input.text },
@@ -110,9 +110,9 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       },
     });
 
-    const tools = { web_search: customSearchTool };
+    const tools = searchEnabled ? { web_search: customSearchTool } : undefined;
 
-    // 4. streamText with the requested model, effort tier, and fallback resilience
+    
     const effortBudget = EFFORT_BUDGET[(input.effort ?? "standard") as Effort];
     const requestedFallback = input.model === "fallback";
     let activeModelName = getGroqModel(requestedFallback).modelName;
@@ -156,7 +156,11 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               tokensIn: usage?.inputTokens,
               tokensOut: usage?.outputTokens,
               cachedIn: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
-              costUsd: "0.000000",
+              costUsd: calculateTurnCostUsd(
+                activeModelName,
+                usage?.inputTokens,
+                usage?.outputTokens
+              ),
             });
 
             // Enqueue fire-and-forget side effects
@@ -220,7 +224,11 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               tokensIn: usage?.inputTokens,
               tokensOut: usage?.outputTokens,
               cachedIn: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
-              costUsd: "0.000000",
+              costUsd: calculateTurnCostUsd(
+                activeModelName,
+                usage?.inputTokens,
+                usage?.outputTokens
+              ),
             });
 
             void enqueueSideEffects(

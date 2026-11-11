@@ -74,14 +74,31 @@ const inFlightCount = new Map<string, number>();
 
 export async function checkRateLimits(userId: string): Promise<RateLimitDecision> {
   const limiters = getLimiters();
+  const redis = limiters && "redis" in limiters ? limiters.redis : null;
 
-  // Check in-flight first
-  const currentInFlight = inFlightCount.get(userId) || 0;
-  if (currentInFlight >= MAX_INFLIGHT) {
-    return {
-      ok: false,
-      retryAfter: 2,
-    };
+  // Check in-flight first (distributed via Redis when available, in-memory fallback)
+  if (redis) {
+    const key = `inflight:${userId}`;
+    const inflight = await redis.incr(key);
+    if (inflight === 1) {
+      await redis.expire(key, 60);
+    }
+    if (inflight > MAX_INFLIGHT) {
+      await redis.decr(key);
+      return {
+        ok: false,
+        retryAfter: 2,
+      };
+    }
+  } else {
+    const currentInFlight = inFlightCount.get(userId) || 0;
+    if (currentInFlight >= MAX_INFLIGHT) {
+      return {
+        ok: false,
+        retryAfter: 2,
+      };
+    }
+    inFlightCount.set(userId, currentInFlight + 1);
   }
 
   // If Redis configured, check Upstash sliding windows
@@ -92,25 +109,47 @@ export async function checkRateLimits(userId: string): Promise<RateLimitDecision
     ]);
 
     if (!minRes.success) {
+      if (redis) {
+        await redis.decr(`inflight:${userId}`);
+      } else {
+        const count = inFlightCount.get(userId) || 1;
+        if (count <= 1) inFlightCount.delete(userId);
+        else inFlightCount.set(userId, count - 1);
+      }
       const retryAfter = Math.ceil((minRes.reset - Date.now()) / 1000);
       return { ok: false, retryAfter: Math.max(1, retryAfter) };
     }
 
     if (!dayRes.success) {
+      if (redis) {
+        await redis.decr(`inflight:${userId}`);
+      } else {
+        const count = inFlightCount.get(userId) || 1;
+        if (count <= 1) inFlightCount.delete(userId);
+        else inFlightCount.set(userId, count - 1);
+      }
       const retryAfter = Math.ceil((dayRes.reset - Date.now()) / 1000);
       return { ok: false, retryAfter: Math.max(1, retryAfter) };
     }
   }
 
-  // Acquire in-flight slot
-  inFlightCount.set(userId, currentInFlight + 1);
-
   const release = async () => {
-    const count = inFlightCount.get(userId) || 1;
-    if (count <= 1) {
-      inFlightCount.delete(userId);
+    if (redis) {
+      try {
+        const remaining = await redis.decr(`inflight:${userId}`);
+        if (remaining <= 0) {
+          await redis.del(`inflight:${userId}`);
+        }
+      } catch {
+        // ignore
+      }
     } else {
-      inFlightCount.set(userId, count - 1);
+      const count = inFlightCount.get(userId) || 1;
+      if (count <= 1) {
+        inFlightCount.delete(userId);
+      } else {
+        inFlightCount.set(userId, count - 1);
+      }
     }
   };
 

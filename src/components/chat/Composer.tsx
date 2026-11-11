@@ -194,7 +194,7 @@ ${a.content}
               ? `Rate limit reached — try again in ${countdown}s…`
               : "Send a Message"
           }
-          className="w-full resize-none border-0 bg-transparent px-5 pb-2 pt-4 text-[15px] leading-relaxed text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus-visible:outline-none"
+          className="w-full resize-none border-0 bg-transparent px-4 pb-2 pt-3.5 text-base leading-relaxed text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus-visible:outline-none sm:px-5 sm:pt-4 sm:text-[15px]"
         />
 
         {/* Controls row */}

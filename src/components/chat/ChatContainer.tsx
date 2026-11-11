@@ -163,7 +163,7 @@ export function ChatContainer({
   );
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-[var(--bg)]">
+    <div className="flex h-screen h-dvh w-full overflow-hidden bg-[var(--bg)]">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
@@ -192,11 +192,11 @@ export function ChatContainer({
                 <PanelLeft className="h-[18px] w-[18px]" />
               </button>
             </header>
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-28 sm:pb-32">
               <EmptyState />
             </div>
-            <div className="shrink-0 flex justify-center px-4 pb-4">
-              <div className="w-full max-w-[50rem]">{composer}</div>
+            <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
+              <div className="pointer-events-auto w-full max-w-[50rem]">{composer}</div>
             </div>
           </>
         ) : (
@@ -340,8 +340,8 @@ export function ChatContainer({
               onRegenerate={handleRegenerate}
             />
 
-            <div className="shrink-0 flex justify-center px-4 pb-4">
-              <div className="w-full max-w-[50rem]">{composer}</div>
+            <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
+              <div className="pointer-events-auto w-full max-w-[50rem]">{composer}</div>
             </div>
           </>
         )}

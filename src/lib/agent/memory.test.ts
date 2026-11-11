@@ -8,6 +8,7 @@ import type { Conversation, Message, Memory } from "@/types";
 describe("Memory and Context Assembly", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(memQueries, "touchMemories").mockResolvedValue(undefined);
   });
 
   it("assembles context for new conversation without existing history", async () => {

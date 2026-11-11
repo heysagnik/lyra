@@ -1,4 +1,4 @@
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { messages } from "@/lib/db/schema";
 import type { Message, Role, SearchSource } from "@/types";
@@ -76,8 +76,8 @@ export async function listConversationMessages(
     .select()
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
-    .orderBy(asc(messages.createdAt))
+    .orderBy(desc(messages.createdAt))
     .limit(limit);
 
-  return rows.map(toDomainMessage);
+  return rows.reverse().map(toDomainMessage);
 }

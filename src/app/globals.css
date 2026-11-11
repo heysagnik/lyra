@@ -449,3 +449,13 @@ input:focus {
   box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
 }
+
+/* Floating bottom composer gradient scrim */
+.composer-scrim {
+  background: linear-gradient(
+    to top,
+    var(--bg) 0%,
+    color-mix(in srgb, var(--bg) 95%, transparent) 55%,
+    transparent 100%
+  );
+}

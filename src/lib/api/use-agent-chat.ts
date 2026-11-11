@@ -46,6 +46,7 @@ export function useAgentChat({
 
   useEffect(() => {
     setActiveConversationId(conversationId);
+    setCurrentSources([]);
   }, [conversationId]);
 
   const transport = useMemo(
@@ -114,7 +115,6 @@ export function useAgentChat({
       effortOverride?: "low" | "standard" | "max"
     ) => {
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
-      setCurrentSources([]);
 
       await rawSendMessage(
         { text },
@@ -135,7 +135,16 @@ export function useAgentChat({
   const isStreaming = status === "streaming" || status === "submitted";
 
   const mappedMessages = useMemo(() => {
-    return messages.map((m) => {
+    // Find last assistant message to apply streaming-time sources fallback
+    let lastAssistantIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+
+    return messages.map((m, idx) => {
       let sources: SearchSource[] | undefined;
       const parts = (m.parts as ChatMessagePart[] | undefined) || [];
 
@@ -153,12 +162,18 @@ export function useAgentChat({
         }
       }
 
+      // Apply live-streamed sources only to the current (last) assistant message
+      const fallbackSources =
+        !sources && idx === lastAssistantIdx && m.role === "assistant" && currentSources.length > 0
+          ? currentSources
+          : undefined;
+
       return {
         id: m.id,
         role: m.role as "user" | "assistant" | "system",
         content: textContent,
         parts,
-        sources: sources || (m.role === "assistant" ? currentSources : undefined),
+        sources: sources || fallbackSources,
       };
     });
   }, [messages, currentSources]);

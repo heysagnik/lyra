@@ -2,8 +2,10 @@ import { WINDOW_MESSAGES } from "./budget";
 import { assembleSystemPrompt } from "./prompt";
 import { getConversation } from "@/lib/db/queries/conversations";
 import { getRecentMessages } from "@/lib/db/queries/messages";
-import { getUserMemories } from "@/lib/db/queries/memories";
+import { getUserMemories, touchMemories } from "@/lib/db/queries/memories";
 import type { Message } from "@/types";
+
+const MEMORY_MAX_ITEMS = 10;
 
 export interface AssembledContext {
   systemPrompt: string;
@@ -14,7 +16,8 @@ export interface AssembledContext {
 
 export async function assemblePromptContext(
   userId: string,
-  conversationId?: string
+  conversationId?: string,
+  searchEnabled?: boolean
 ): Promise<AssembledContext> {
   let summary: string | null = null;
   let title: string | undefined;
@@ -31,8 +34,12 @@ export async function assemblePromptContext(
     recentMessages = await getRecentMessages(conversationId, WINDOW_MESSAGES);
   }
 
-  const memories = await getUserMemories(userId, 5);
-  const systemPrompt = assembleSystemPrompt(memories, summary);
+  const effectiveSearch = searchEnabled ?? searchDefault;
+  const memories = await getUserMemories(userId, MEMORY_MAX_ITEMS);
+  if (memories.length > 0) {
+    void touchMemories(memories.map((m) => m.id));
+  }
+  const systemPrompt = assembleSystemPrompt(memories, summary, effectiveSearch);
 
   const window = recentMessages
     .filter((m) => m.role === "user" || m.role === "assistant")

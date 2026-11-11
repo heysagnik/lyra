@@ -27,13 +27,13 @@ export function EmptyState() {
   return (
     <h1
       style={{ fontFamily: "var(--font-wordmark)" }}
-      className="rise-in flex items-center justify-center gap-3 text-center text-4xl font-medium tracking-[-0.01em] text-[var(--text)] sm:text-5xl"
+      className="rise-in flex flex-col items-center justify-center gap-2.5 text-center text-3xl font-medium tracking-[-0.01em] text-[var(--text)] sm:flex-row sm:gap-3 sm:text-5xl"
       aria-label={`${greeting}${name ? `, ${name}` : ""}`}
     >
       <Asterisk
         aria-hidden
         strokeWidth={2}
-        className="h-8 w-8 text-[var(--accent)] sm:h-9 sm:w-9"
+        className="h-8 w-8 shrink-0 text-[var(--accent)] sm:h-9 sm:w-9"
       />
       <span>
         {greeting}

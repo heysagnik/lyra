@@ -139,7 +139,7 @@ export function Sidebar({
   return (
     <>
       {/* Mobile backdrop */}
-      {isOpenMobile && (
+      {isLayoutReady && isOpenMobile && (
         <div
           onClick={onCloseMobile}
           className="fade-in fixed inset-0 z-40 bg-black/60 md:hidden"
