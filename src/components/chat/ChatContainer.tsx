@@ -170,7 +170,7 @@ export function ChatContainer({
   );
 
   return (
-    <div className="flex h-screen h-dvh w-full overflow-hidden bg-[var(--bg)]">
+    <div className="fixed inset-0 flex w-full overflow-hidden bg-[var(--bg)]">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}

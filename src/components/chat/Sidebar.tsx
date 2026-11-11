@@ -149,7 +149,7 @@ export function Sidebar({
 
       {/* Sidebar panel */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-full shrink-0 flex-col overflow-hidden bg-[var(--panel)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden bg-[var(--panel)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
           isOpenMobile ? "translate-x-0 md:w-[280px]" : "-translate-x-full md:w-0"
         } ${isLayoutReady ? "" : "max-md:hidden"}`}
         aria-label="Conversation index"
