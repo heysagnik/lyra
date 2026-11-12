@@ -241,22 +241,68 @@ export function ChatContainer({
                 />
               </form>
             ) : (
-              <button
-                onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
-                aria-haspopup="menu"
-                aria-expanded={headerMenuOpen}
-                className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
-              >
-                <h1 className="truncate max-w-[170px] text-sm font-medium text-[var(--color-text)] sm:max-w-md sm:text-[15px]">
-                  {activeConv?.title || "New chat"}
-                </h1>
-                <CaretDownIcon
-                  aria-hidden
-                  className={`h-4 w-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-fast)] ${
-                    headerMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
+                  aria-haspopup="menu"
+                  aria-expanded={headerMenuOpen}
+                  className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+                >
+                  <h1 className="truncate max-w-[170px] text-sm font-medium text-[var(--color-text)] sm:max-w-md sm:text-[15px]">
+                    {activeConv?.title || "New chat"}
+                  </h1>
+                  <CaretDownIcon
+                    aria-hidden
+                    className={`h-4 w-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-fast)] ${
+                      headerMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Title dropdown menu */}
+                {headerMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setHeaderMenuOpen(false)}
+                      aria-hidden
+                    />
+                    <div
+                      role="menu"
+                      aria-label="Conversation options"
+                      className="popover-in absolute left-0 top-full z-50 mt-1 w-32 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-0.5 shadow-[var(--shadow-popover)]"
+                    >
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setHeaderMenuOpen(false);
+                          setHeaderTitle(activeConv?.title ?? "");
+                          setIsRenamingHeader(true);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
+                      >
+                        <PencilIcon aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
+                        Rename
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={async () => {
+                          setHeaderMenuOpen(false);
+                          if (activeId) {
+                            await deleteMutation.mutateAsync(activeId);
+                            setActiveId(undefined);
+                            router.push("/");
+                          }
+                        }}
+                        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
+                      >
+                        <TrashIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
@@ -296,49 +342,6 @@ export function ChatContainer({
             )}
           </div>
 
-          {/* Title dropdown menu */}
-          {headerMenuOpen && !isEmpty && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setHeaderMenuOpen(false)}
-                aria-hidden
-              />
-              <div
-                role="menu"
-                aria-label="Conversation options"
-                className="popover-in-left absolute left-12 top-full z-50 mt-1 w-32 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-0.5 shadow-md"
-              >
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setHeaderMenuOpen(false);
-                    setHeaderTitle(activeConv?.title ?? "");
-                    setIsRenamingHeader(true);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
-                >
-                  <PencilIcon aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
-                  Rename
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={async () => {
-                    setHeaderMenuOpen(false);
-                    if (activeId) {
-                      await deleteMutation.mutateAsync(activeId);
-                      setActiveId(undefined);
-                      router.push("/");
-                    }
-                  }}
-                  className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
-                >
-                  <TrashIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
-                  Delete
-                </button>
-              </div>
-            </>
-          )}
         </header>
 
         {isEmpty ? (
