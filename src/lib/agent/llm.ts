@@ -1,39 +1,16 @@
-import { createGroq } from "@ai-sdk/groq";
 import { generateText, generateObject } from "ai";
 import { z } from "zod";
-import { getEnv } from "@/lib/env";
+import { getLanguageModel } from "@/lib/llm/provider";
 
-let cachedGroq: ReturnType<typeof createGroq> | undefined;
-
-export function getGroqProvider() {
-  if (!cachedGroq) {
-    const env = getEnv();
-    cachedGroq = createGroq({
-      apiKey: env.GROQ_API_KEY,
-    });
-  }
-  return cachedGroq;
-}
-
-export function getGroqModel(isFallback = false) {
-  const env = getEnv();
-  const provider = getGroqProvider();
-  const modelName = isFallback
-    ? env.GROQ_MODEL_FALLBACK
-    : env.GROQ_MODEL_PRIMARY;
-  return {
-    model: provider(modelName),
-    modelName,
-  };
-}
+export { getGroqProvider, getLanguageModel } from "@/lib/llm/provider";
 
 export async function generateSummaryWithLlm(
   prompt: string,
   maxTokens: number
 ): Promise<string> {
-  const fallback = getGroqModel(true);
+  const { model } = getLanguageModel();
   const { text } = await generateText({
-    model: fallback.model,
+    model,
     prompt,
     maxOutputTokens: maxTokens,
   });
@@ -44,9 +21,9 @@ export async function extractMemoriesWithLlm<T extends z.ZodTypeAny>(
   prompt: string,
   schema: T
 ): Promise<z.infer<T>> {
-  const fallback = getGroqModel(true);
+  const { model } = getLanguageModel();
   const res = await generateObject({
-    model: fallback.model,
+    model,
     schema,
     prompt,
   });

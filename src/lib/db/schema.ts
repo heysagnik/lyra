@@ -159,17 +159,23 @@ export const memories = pgTable(
 /**
  * Usage events table — written inline per turn; rolled up nightly
  */
-export const usageEvents = pgTable("usage_events", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
-  userId: text("user_id").notNull(),
-  conversationId: uuid("conversation_id"),
-  model: text("model"),
-  tokensIn: integer("tokens_in"),
-  tokensOut: integer("tokens_out"),
-  cachedIn: integer("cached_in"),
-  costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const usageEvents = pgTable(
+  "usage_events",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: text("user_id").notNull(),
+    conversationId: uuid("conversation_id"),
+    model: text("model"),
+    tokensIn: integer("tokens_in"),
+    tokensOut: integer("tokens_out"),
+    cachedIn: integer("cached_in"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("usage_events_user_created_idx").on(table.userId, table.createdAt.desc()),
+  ]
+);
 
 /**
  * Usage daily table — rollup target (nightly job)

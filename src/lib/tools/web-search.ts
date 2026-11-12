@@ -14,7 +14,11 @@ export const searchParametersSchema = z.object({
     .string()
     .min(1)
     .max(400)
-    .describe("Search query, keywords not sentences"),
+    .optional()
+    .describe("Search keywords (required, 3-6 keywords, e.g. 'neon supabase postgres pricing')"),
+  q: z.string().min(1).max(400).optional(),
+  keywords: z.string().min(1).max(400).optional(),
+  search_query: z.string().min(1).max(400).optional(),
   recency_days: z
     .number()
     .int()
@@ -60,11 +64,25 @@ export function computeSearchCacheKey(
   return `search:v1:${hash}`;
 }
 
-// In-memory fallback search cache if Redis is not configured or in test mode
+// In-memory bounded search cache with automatic TTL pruning and LRU ceiling
+const MAX_SEARCH_CACHE_ENTRIES = 500;
 const localSearchCache = new Map<
   string,
   { sources: SearchSource[]; expiresAt: number }
 >();
+
+function pruneSearchCache(): void {
+  const now = Date.now();
+  for (const [key, val] of localSearchCache.entries()) {
+    if (val.expiresAt <= now) {
+      localSearchCache.delete(key);
+    }
+  }
+  if (localSearchCache.size >= MAX_SEARCH_CACHE_ENTRIES) {
+    const oldestKey = localSearchCache.keys().next().value;
+    if (oldestKey) localSearchCache.delete(oldestKey);
+  }
+}
 
 async function getCachedSearch(
   cacheKey: string
@@ -73,6 +91,9 @@ async function getCachedSearch(
   if (item && item.expiresAt > Date.now()) {
     return item.sources;
   }
+  if (item) {
+    localSearchCache.delete(cacheKey);
+  }
   return null;
 }
 
@@ -80,6 +101,9 @@ async function setCachedSearch(
   cacheKey: string,
   sources: SearchSource[]
 ): Promise<void> {
+  if (localSearchCache.size >= MAX_SEARCH_CACHE_ENTRIES) {
+    pruneSearchCache();
+  }
   localSearchCache.set(cacheKey, {
     sources,
     expiresAt: Date.now() + SEARCH_CACHE_TTL_S * 1000,
@@ -94,23 +118,21 @@ async function callTinySearchApi(
   recencyDays?: number
 ): Promise<SearchSource[]> {
   const env = getEnv();
-  const fixedHost = "https://api.tinyfish.io/v1/search";
+  const endpoint = new URL("https://api.search.tinyfish.ai");
+  endpoint.searchParams.set("query", query);
+  if (recencyDays) {
+    endpoint.searchParams.set("recency_days", String(recencyDays));
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(fixedHost, {
-      method: "POST",
+    const res = await fetch(endpoint.toString(), {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.TINYFISH_API_KEY}`,
+        "X-API-Key": env.TINYFISH_API_KEY,
       },
-      body: JSON.stringify({
-        query,
-        recency_days: recencyDays,
-        limit: 5,
-      }),
       signal: controller.signal,
     });
 
@@ -146,29 +168,36 @@ export async function executeWebSearch(
 ): Promise<string> {
   const parsed = searchParametersSchema.safeParse(params);
   if (!parsed.success) {
-    return "Tool error: Invalid search query parameters. Please use short keywords.";
+    return "Tool error: Invalid search query parameters. Please specify short keywords in query.";
   }
 
-  const { query, recency_days } = parsed.data;
+  const rawQuery =
+    parsed.data.query ||
+    parsed.data.q ||
+    parsed.data.keywords ||
+    parsed.data.search_query;
+
+  if (!rawQuery || rawQuery.trim().length === 0) {
+    return "Tool error: Search query was empty. Please specify keywords (e.g. web_search({ query: 'hubspot pricing 2026' })).";
+  }
+
+  const query = rawQuery.trim();
+  const { recency_days } = parsed.data;
   const cacheKey = computeSearchCacheKey(query, recency_days);
 
-  // 1. Check cache
   const cached = await getCachedSearch(cacheKey);
   if (cached && cached.length > 0) {
     if (onSourcesResolved) onSourcesResolved(cached);
     return formatSourcesForModel(cached);
   }
 
-  // 2. Fetch with 1 retry
   let sources: SearchSource[] = [];
   try {
     sources = await callTinySearchApi(query, recency_days);
   } catch {
-    // Retry once
     try {
       sources = await callTinySearchApi(query, recency_days);
     } catch {
-      // Degrade gracefully: return "search unavailable"
       return "Web search is currently unavailable. Please answer using your existing knowledge and mention that search could not be reached.";
     }
   }
@@ -177,7 +206,6 @@ export async function executeWebSearch(
     return "No relevant search results were found for the query.";
   }
 
-  // Save to cache
   await setCachedSearch(cacheKey, sources);
   if (onSourcesResolved) {
     onSourcesResolved(sources);

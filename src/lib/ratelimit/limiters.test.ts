@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { checkRateLimits, setLimitersForTesting } from "./limiters";
+import * as dbModule from "@/lib/db";
 
 describe("Rate Limiters", () => {
   beforeEach(() => {
@@ -109,6 +110,25 @@ describe("Rate Limiters", () => {
     if (res.release) {
       await res.release();
     }
+  });
+
+  it("enforces rate limits based on usage_events in database", async () => {
+    vi.spyOn(dbModule, "getDb").mockReturnValue({
+      select: () => ({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([
+          {
+            countMin: 25,
+            countDay: 25,
+            oldestInMin: new Date(Date.now() - 30000),
+          },
+        ]),
+      }),
+    } as unknown as dbModule.DbClient);
+
+    const res = await checkRateLimits("user-db-limited");
+    expect(res.ok).toBe(false);
+    expect(res.retryAfter).toBeGreaterThanOrEqual(1);
   });
 });
 

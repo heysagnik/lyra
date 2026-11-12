@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { getGroqModel, generateSummaryWithLlm, extractMemoriesWithLlm } from "./llm";
+import { getLanguageModel, generateSummaryWithLlm, extractMemoriesWithLlm } from "./llm";
 import { z } from "zod";
 
 vi.mock("ai", async (importOriginal) => {
@@ -25,23 +25,17 @@ vi.mock("ai", async (importOriginal) => {
 
 describe("LLM Adapter", () => {
   it("resolves primary model with configured model name", () => {
-    const primary = getGroqModel(false);
+    const primary = getLanguageModel();
     expect(primary.modelName).toBe("qwen/qwen3.8-27b");
     expect(primary.model).toBeDefined();
   });
 
-  it("resolves fallback model when fallback is requested", () => {
-    const fallback = getGroqModel(true);
-    expect(fallback.modelName).toBe("openai/gpt-oss-20b");
-    expect(fallback.model).toBeDefined();
-  });
-
-  it("generates summary text using fallback model", async () => {
+  it("generates summary text using model", async () => {
     const summary = await generateSummaryWithLlm("Summarize this conversation", 400);
     expect(summary).toBe("This is a concise summary.");
   });
 
-  it("extracts structured memories using fallback model", async () => {
+  it("extracts structured memories using model", async () => {
     const schema = z.object({
       memories: z.array(
         z.object({
@@ -57,5 +51,3 @@ describe("LLM Adapter", () => {
     expect(result.memories[0].content).toBe("User likes Python");
   });
 });
-
-

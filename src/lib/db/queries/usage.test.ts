@@ -7,6 +7,7 @@ import {
   rollupDailyUsage,
   pruneOldUsageEvents,
   getRecentJobFailures,
+  getUserUsageStats,
 } from "./usage";
 
 describe("Usage and Failure Queries", () => {
@@ -131,5 +132,65 @@ describe("Usage and Failure Queries", () => {
     const failures = await getRecentJobFailures(5);
     expect(failures).toHaveLength(1);
     expect(failures[0].kind).toBe("chat.distill");
+  });
+
+  it("calculates user usage stats and remaining capacity", async () => {
+    const mockAgg = [
+      {
+        turns: 15,
+        tokensIn: 3000,
+        tokensOut: 1500,
+        costUsd: "0.000600",
+      },
+    ];
+
+    const mockRecentEvents = [
+      {
+        id: 101,
+        userId: "user-1",
+        conversationId: "conv-1",
+        model: "qwen/qwen3.8-27b",
+        tokensIn: 200,
+        tokensOut: 100,
+        cachedIn: 0,
+        costUsd: "0.000030",
+        createdAt: new Date(),
+      },
+    ];
+
+    let selectCallCount = 0;
+    vi.spyOn(dbModule, "getDb").mockReturnValue({
+      select: () => {
+        selectCallCount++;
+        if (selectCallCount === 1) {
+          // Aggregate query
+          return {
+            from: vi.fn().mockReturnThis(),
+            where: vi.fn().mockResolvedValue(mockAgg),
+          };
+        }
+        // Recent events query
+        return {
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          orderBy: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue(mockRecentEvents),
+        };
+      },
+    } as unknown as dbModule.DbClient);
+
+    const stats = await getUserUsageStats("user-1");
+
+    expect(stats.today.turns).toBe(15);
+    expect(stats.today.tokensIn).toBe(3000);
+    expect(stats.today.tokensOut).toBe(1500);
+    expect(stats.today.costUsd).toBe(0.0006);
+    expect(stats.today.dailyLimit).toBe(300);
+    expect(stats.today.remainingDailyTurns).toBe(285);
+    expect(stats.today.percentUsed).toBe(5);
+    expect(stats.rateLimits.perMinute).toBe(20);
+    expect(stats.rateLimits.perDay).toBe(300);
+    expect(stats.recentEvents).toHaveLength(1);
+    expect(stats.recentEvents[0].model).toBe("qwen/qwen3.8-27b");
   });
 });

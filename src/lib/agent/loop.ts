@@ -5,12 +5,13 @@ import {
   createUIMessageStreamResponse,
   tool,
 } from "ai";
-import { getGroqModel } from "./llm";
+import { getLanguageModel } from "./llm";
 import { assemblePromptContext } from "./memory";
 import { EFFORT_BUDGET, calculateTurnCostUsd, type Effort } from "./budget";
 import {
   searchParametersSchema,
   executeWebSearch,
+  type SearchParameters,
 } from "@/lib/tools/web-search";
 import { requireUser } from "@/lib/auth/require-user";
 import { checkRateLimits } from "@/lib/ratelimit/limiters";
@@ -33,7 +34,6 @@ export interface RunTurnOptions {
 export async function runTurn({ request, input }: RunTurnOptions): Promise<Response> {
   const startTime = Date.now();
 
-  
   const userResult = await requireUser(request);
   if (!userResult.ok) {
     return new Response(JSON.stringify({ error: userResult.error.message }), {
@@ -43,7 +43,6 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
   }
   const user = userResult.value;
 
-  
   const limitGate = await checkRateLimits(user.id);
   if (!limitGate.ok) {
     return new Response(
@@ -64,7 +63,6 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
   let releaseInFlight = limitGate.release;
 
   try {
-    
     let conv = input.conversationId
       ? await getConversation(input.conversationId, user.id)
       : null;
@@ -83,7 +81,6 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     const conversationTitle = conv.title;
     const searchEnabled = input.search ?? conv.searchDefault;
 
-    // Persist incoming user message immediately
     await createMessage({
       conversationId,
       role: "user",
@@ -97,175 +94,138 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       { role: "user" as const, content: input.text },
     ];
 
-    // Tool setup & source tracking
     let resolvedSources: SearchSource[] = [];
+    let streamWriter: Parameters<
+      Parameters<typeof createUIMessageStream>[0]["execute"]
+    >[0]["writer"] | null = null;
+
+    const emitSources = (sources: SearchSource[]) => {
+      resolvedSources = sources;
+      if (streamWriter && sources.length > 0) {
+        try {
+          streamWriter.write({
+            type: "data-sources",
+            data: { items: sources },
+          } as unknown as Parameters<typeof streamWriter.write>[0]);
+        } catch {}
+      }
+    };
+
     const customSearchTool = tool({
       description:
         "Search the live web for current information. Use for anything time-sensitive, factual, or outside your training data.",
       inputSchema: searchParametersSchema,
-      execute: async (args: { query: string; recency_days?: number }) => {
+      execute: async (args: SearchParameters) => {
         return executeWebSearch(args, (sources) => {
-          resolvedSources = sources;
+          emitSources(sources);
         });
       },
     });
 
     const tools = searchEnabled ? { web_search: customSearchTool } : undefined;
 
-    
     const effortBudget = EFFORT_BUDGET[(input.effort ?? "standard") as Effort];
-    const requestedFallback = input.model === "fallback";
-    let activeModelName = getGroqModel(requestedFallback).modelName;
-    let streamResult;
-    try {
-      const primary = getGroqModel(requestedFallback);
-      streamResult = streamText({
-        model: primary.model,
-        system: ctx.systemPrompt,
-        messages,
-        tools,
-        prepareStep: ({ stepNumber }) =>
-          stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
-        stopWhen: stepCountIs(effortBudget.iterations),
-        maxOutputTokens: effortBudget.maxTokensOut,
-        maxRetries: 2,
-        onFinish: async (r) => {
-          try {
-            const latencyMs = Date.now() - startTime;
-            const fullText = r.text || "";
-            const usage = await r.usage;
+    const modelSelection = getLanguageModel(input.model);
+    const activeModelName = modelSelection.modelName;
 
-            // Persist assistant message
-            await createMessage({
-              conversationId,
-              role: "assistant",
-              content: fullText,
-              sources: resolvedSources.length > 0 ? resolvedSources : undefined,
-              model: activeModelName,
-              tokensIn: usage?.inputTokens,
-              tokensOut: usage?.outputTokens,
-              latencyMs,
-            });
-            await incrementMsgCount(conversationId);
+    const streamResult = streamText({
+      model: modelSelection.model,
+      system: ctx.systemPrompt,
+      messages,
+      tools,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
+      stopWhen: stepCountIs(effortBudget.iterations),
+      maxOutputTokens: effortBudget.maxTokensOut,
+      maxRetries: 2,
+      onError: async ({ error }) => {
+        logStructuredError({
+          userId: user.id,
+          conversationId,
+          code: "INTERNAL",
+          msg: "Stream text generation error",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (releaseInFlight) {
+          await releaseInFlight();
+          releaseInFlight = undefined;
+        }
+      },
+      onFinish: async (r) => {
+        try {
+          const latencyMs = Date.now() - startTime;
+          const fullText = r.text || "";
+          const usage = await r.usage;
 
-            // Record usage
-            await recordUsageEvent({
-              userId: user.id,
-              conversationId,
-              model: activeModelName,
-              tokensIn: usage?.inputTokens,
-              tokensOut: usage?.outputTokens,
-              cachedIn: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
-              costUsd: calculateTurnCostUsd(
-                activeModelName,
-                usage?.inputTokens,
-                usage?.outputTokens
-              ),
-            });
+          await createMessage({
+            conversationId,
+            role: "assistant",
+            content: fullText,
+            sources: resolvedSources.length > 0 ? resolvedSources : undefined,
+            model: activeModelName,
+            tokensIn: usage?.inputTokens,
+            tokensOut: usage?.outputTokens,
+            latencyMs,
+          });
+          await incrementMsgCount(conversationId);
 
-            // Enqueue fire-and-forget side effects
-            void enqueueSideEffects(
-              conversationId,
-              user.id,
-              (conv?.msgCount ?? 0) + 2,
-              conv?.summarizedCount ?? 0
-            );
-          } finally {
-            if (releaseInFlight) {
-              await releaseInFlight();
-              releaseInFlight = undefined;
-            }
-          }
-        },
-        onAbort: async () => {
+          await recordUsageEvent({
+            userId: user.id,
+            conversationId,
+            model: activeModelName,
+            tokensIn: usage?.inputTokens,
+            tokensOut: usage?.outputTokens,
+            cachedIn: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
+            costUsd: calculateTurnCostUsd(
+              activeModelName,
+              usage?.inputTokens,
+              usage?.outputTokens
+            ),
+          });
+
+          void enqueueSideEffects(
+            conversationId,
+            user.id,
+            (conv?.msgCount ?? 0) + 2,
+            conv?.summarizedCount ?? 0
+          );
+        } finally {
           if (releaseInFlight) {
             await releaseInFlight();
             releaseInFlight = undefined;
           }
-        },
-      });
-    } catch {
-      // Primary model failed before streaming started: fallback to secondary
-      const fallback = getGroqModel(true);
-      activeModelName = fallback.modelName;
+        }
+      },
+      onAbort: async () => {
+        if (releaseInFlight) {
+          await releaseInFlight();
+          releaseInFlight = undefined;
+        }
+      },
+    });
 
-      streamResult = streamText({
-        model: fallback.model,
-        system: ctx.systemPrompt,
-        messages,
-        tools,
-        prepareStep: ({ stepNumber }) =>
-          stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
-        stopWhen: stepCountIs(effortBudget.iterations),
-        maxOutputTokens: effortBudget.maxTokensOut,
-        maxRetries: 2,
-        onFinish: async (r) => {
-          try {
-            const latencyMs = Date.now() - startTime;
-            const fullText = r.text || "";
-            const usage = await r.usage;
-
-            await createMessage({
-              conversationId,
-              role: "assistant",
-              content: fullText,
-              sources: resolvedSources.length > 0 ? resolvedSources : undefined,
-              model: activeModelName,
-              tokensIn: usage?.inputTokens,
-              tokensOut: usage?.outputTokens,
-              latencyMs,
-            });
-            await incrementMsgCount(conversationId);
-
-            await recordUsageEvent({
-              userId: user.id,
-              conversationId,
-              model: activeModelName,
-              tokensIn: usage?.inputTokens,
-              tokensOut: usage?.outputTokens,
-              cachedIn: usage?.inputTokenDetails?.cacheReadTokens ?? 0,
-              costUsd: calculateTurnCostUsd(
-                activeModelName,
-                usage?.inputTokens,
-                usage?.outputTokens
-              ),
-            });
-
-            void enqueueSideEffects(
-              conversationId,
-              user.id,
-              (conv?.msgCount ?? 0) + 2,
-              conv?.summarizedCount ?? 0
-            );
-          } finally {
-            if (releaseInFlight) {
-              await releaseInFlight();
-              releaseInFlight = undefined;
-            }
-          }
-        },
-        onAbort: async () => {
-          if (releaseInFlight) {
-            await releaseInFlight();
-            releaseInFlight = undefined;
-          }
-        },
-      });
-    }
-
-    // 5. Wrap in UI message stream
     const uiStream = createUIMessageStream({
       execute: async ({ writer }) => {
-        // Emit data-meta immediately
+        streamWriter = writer;
+
         writer.write({
           type: "data-meta",
           data: { conversationId, title: conversationTitle },
         } as unknown as Parameters<typeof writer.write>[0]);
 
-        // Merge LLM UI message stream
-        await writer.merge(streamResult.toUIMessageStream());
+        if (resolvedSources.length > 0) {
+          writer.write({
+            type: "data-sources",
+            data: { items: resolvedSources },
+          } as unknown as Parameters<typeof writer.write>[0]);
+        }
 
-        // Emit data-sources if sources were used
+        writer.merge(streamResult.toUIMessageStream());
+
+        try {
+          await streamResult.text;
+        } catch {}
+
         if (resolvedSources.length > 0) {
           writer.write({
             type: "data-sources",

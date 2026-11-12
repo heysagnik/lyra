@@ -3,12 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Exempt health, auth endpoints, and workers (workers use signature verification)
+  // Exempt health and auth endpoints
   if (
     !pathname.startsWith("/api") ||
     pathname === "/api/health" ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/workers")
+    pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();
   }

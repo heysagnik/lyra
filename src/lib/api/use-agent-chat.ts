@@ -68,7 +68,6 @@ export function useAgentChat({
   } = useChat({
     transport,
     onData: (dataPart) => {
-      // Capture custom UI stream data parts
       if (typeof dataPart === "object" && dataPart !== null) {
         const part = dataPart as { type?: string; data?: unknown };
         if (part.type === "data-meta" && part.data) {
@@ -101,7 +100,7 @@ export function useAgentChat({
         if (m.sources?.length) {
           parts.push({ type: "data-sources", data: { items: m.sources } });
         }
-        return { id: m.id, role: m.role, parts };
+        return { id: m.id, role: m.role, parts, sources: m.sources };
       });
       setMessages(hydrated as unknown as Parameters<typeof setMessages>[0]);
     }
@@ -111,9 +110,10 @@ export function useAgentChat({
     async (
       text: string,
       searchOverride?: boolean,
-      modelOverride?: "primary" | "fallback",
+      modelOverride?: string,
       effortOverride?: "low" | "standard" | "max"
     ) => {
+      setCurrentSources([]);
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
 
       await rawSendMessage(
@@ -135,7 +135,6 @@ export function useAgentChat({
   const isStreaming = status === "streaming" || status === "submitted";
 
   const mappedMessages = useMemo(() => {
-    // Find last assistant message to apply streaming-time sources fallback
     let lastAssistantIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
@@ -148,21 +147,26 @@ export function useAgentChat({
       let sources: SearchSource[] | undefined;
       const parts = (m.parts as ChatMessagePart[] | undefined) || [];
 
-      // Extract text content from parts
       const textContent = parts
         .filter((p) => p.type === "text" && typeof p.text === "string")
         .map((p) => p.text)
         .join("");
 
-      // Extract sources from parts if present
       for (const p of parts) {
         if (p.type === "data-sources" && p.data) {
           const s = (p.data as { items?: SearchSource[] }).items;
           if (Array.isArray(s)) sources = s;
         }
+        if (p.type.startsWith("tool-") && (p as { output?: unknown }).output) {
+          const out = (p as { output?: { sources?: SearchSource[] } }).output;
+          if (Array.isArray(out?.sources)) sources = out.sources;
+        }
       }
 
-      // Apply live-streamed sources only to the current (last) assistant message
+      if (!sources && (m as unknown as { sources?: SearchSource[] }).sources?.length) {
+        sources = (m as unknown as { sources?: SearchSource[] }).sources;
+      }
+
       const fallbackSources =
         !sources && idx === lastAssistantIdx && m.role === "assistant" && currentSources.length > 0
           ? currentSources

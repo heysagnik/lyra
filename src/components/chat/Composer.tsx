@@ -2,19 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ArrowUp, Square, ChevronDown, Check, Plus, X } from "lucide-react";
+import { REGISTERED_MODELS } from "@/lib/llm/models";
 
 export interface ComposerProps {
-  onSend: (text: string, search: boolean, model: "primary" | "fallback") => void;
+  onSend: (text: string, search: boolean, model: string) => void;
   isStreaming: boolean;
   onStop: () => void;
   retryAfterSeconds?: number;
+  isModelLocked?: boolean;
 }
-
-/** The two models the backend actually serves (GROQ_MODEL_PRIMARY / FALLBACK). */
-const MODELS = [
-  { id: "primary" as const, label: "Qwen 3.8 27B" },
-  { id: "fallback" as const, label: "GPT-OSS 20B" },
-];
 
 const MODEL_STORAGE_KEY = "lyra-model";
 
@@ -43,11 +39,12 @@ export function Composer({
   isStreaming,
   onStop,
   retryAfterSeconds,
+  isModelLocked = false,
 }: ComposerProps) {
   const [text, setText] = useState("");
   const [countdown, setCountdown] = useState<number | undefined>(retryAfterSeconds);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [model, setModel] = useState<"primary" | "fallback">("primary");
+  const [model, setModel] = useState<string>("primary");
   const [attachments, setAttachments] = useState<
     { name: string; content: string; size?: number }[]
   >([]);
@@ -89,7 +86,14 @@ export function Composer({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(MODEL_STORAGE_KEY);
-      if (saved === "primary" || saved === "fallback") setModel(saved);
+      if (saved) {
+        const found =
+          REGISTERED_MODELS.find((m) => m.id === saved || m.modelId === saved) ||
+          (saved === "primary" || saved === "fallback" ? REGISTERED_MODELS.find((m) => m.isDefaultPrimary) : undefined);
+        if (found) {
+          setModel(saved);
+        }
+      }
     } catch {
       // ignore
     }
@@ -165,7 +169,14 @@ export function Composer({
     !isStreaming &&
     (!!text.trim() || attachments.length > 0) &&
     countdown === undefined;
-  const modelLabel = MODELS.find((m) => m.id === model)?.label ?? "";
+
+  const activeModel = REGISTERED_MODELS.find(
+    (m) =>
+      m.id === model ||
+      m.modelId === model ||
+      ((model === "primary" || model === "fallback") && m.isDefaultPrimary)
+  );
+  const modelLabel = activeModel?.label ?? "Qwen 3.8 27B";
 
   return (
     <div className="w-full">
@@ -288,10 +299,24 @@ export function Composer({
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={pickerOpen}
-                onClick={() => setPickerOpen(!pickerOpen)}
-                className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+                disabled={isModelLocked}
+                title={
+                  isModelLocked
+                    ? "Model cannot be changed once a conversation has started"
+                    : "Choose model"
+                }
+                onClick={() => {
+                  if (!isModelLocked) {
+                    setPickerOpen(!pickerOpen);
+                  }
+                }}
+                className={`flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm transition-[background-color,transform,opacity] duration-[var(--duration-normal)] ${
+                  isModelLocked
+                    ? "cursor-not-allowed opacity-50 text-[var(--color-text-secondary)]"
+                    : "text-[var(--color-text)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+                }`}
               >
-                <span>{modelLabel}</span>
+                <span className="font-medium text-xs sm:text-sm">{modelLabel}</span>
                 <ChevronDown
                   aria-hidden
                   className={`h-3.5 w-3.5 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-normal)] ${
@@ -300,14 +325,18 @@ export function Composer({
                 />
               </button>
 
-              {pickerOpen && (
-                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-52 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-dialog)]">
+              {pickerOpen && !isModelLocked && (
+                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-44 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-dialog)]">
                   <div role="listbox" aria-label="Model" className="space-y-0.5">
-                    {MODELS.map((m) => {
-                      const selected = m.id === model;
+                    {REGISTERED_MODELS.map((m) => {
+                      const selected =
+                        m.id === model ||
+                        m.modelId === model ||
+                        ((model === "primary" || model === "fallback") && m.isDefaultPrimary);
                       return (
                         <button
                           key={m.id}
+                          type="button"
                           role="option"
                           aria-selected={selected}
                           onClick={() => {
@@ -319,21 +348,24 @@ export function Composer({
                             }
                             setPickerOpen(false);
                           }}
-                          className={`flex w-full items-center justify-between rounded-[var(--radius-sm)] px-3 py-2.5 text-left text-sm transition-colors duration-[var(--duration-fast)] ${
+                          className={`flex w-full items-center justify-between rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-xs sm:text-[13px] transition-colors duration-[var(--duration-fast)] ${
                             selected
-                              ? "bg-[var(--color-surface-3)] text-[var(--color-text)]"
-                              : "text-[var(--color-text)] hover:bg-[var(--color-hover)]"
+                              ? "bg-[var(--color-surface-3)] font-medium text-[var(--color-text)]"
+                              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
                           }`}
                         >
-                          <span>{m.label}</span>
+                          <span className="truncate">{m.label}</span>
                           {selected && (
-                            <Check aria-hidden className="h-4 w-4" strokeWidth={2.5} />
+                            <Check
+                              aria-hidden
+                              className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]"
+                              strokeWidth={2.5}
+                            />
                           )}
                         </button>
                       );
                     })}
                   </div>
-
                 </div>
               )}
             </div>

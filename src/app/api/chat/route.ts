@@ -7,7 +7,7 @@ const chatRequestBodySchema = z.object({
   conversationId: z.string().uuid().optional(),
   message: z.string().min(1, "Message cannot be empty"),
   search: z.boolean().optional(),
-  model: z.enum(["primary", "fallback"]).optional(),
+  model: z.string().optional(),
   effort: z.enum(["low", "standard", "max"]).optional(),
 });
 

@@ -1,74 +1,64 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { enqueueSideEffects, setQStashClientForTesting } from "./client";
-import { Client } from "@upstash/qstash";
+import { enqueueSideEffects, setTaskRunnerForTesting } from "./client";
 
-describe("Queue Client", () => {
+describe("Queue Client (In-Process Async Dispatcher)", () => {
   beforeEach(() => {
-    setQStashClientForTesting(null);
+    setTaskRunnerForTesting(null);
   });
 
-  it("safely skips enqueuing when QStash client is not configured", async () => {
+  it("safely dispatches background tasks without throwing", async () => {
     await expect(
       enqueueSideEffects("conv-no-client", "user-1", 15, 0)
     ).resolves.not.toThrow();
   });
 
-  it("publishes chat.distill and chat.summarize when conditions are met", async () => {
-    const mockPublish = vi.fn().mockResolvedValue({ messageId: "msg_123" });
-    const mockClient = {
-      publishJSON: mockPublish,
-    } as unknown as Client;
+  it("dispatches chat.distill and chat.summarize when conditions are met", async () => {
+    const mockDistill = vi.fn().mockResolvedValue({ success: true, count: 1 });
+    const mockSummarize = vi.fn().mockResolvedValue({ success: true, updated: true });
 
-    setQStashClientForTesting(mockClient);
+    setTaskRunnerForTesting({
+      distill: mockDistill,
+      summarize: mockSummarize,
+    });
 
-    // When msgCount - summarizedCount >= 10, both distill and summarize are published
+    // When msgCount - summarizedCount >= 10, both distill and summarize are dispatched
     await enqueueSideEffects("conv-1", "user-1", 15, 0);
 
-    expect(mockPublish).toHaveBeenCalledTimes(2);
-    expect(mockPublish).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        url: expect.stringContaining("/api/workers/distill"),
-        body: { conversationId: "conv-1", userId: "user-1" },
-      })
-    );
-    expect(mockPublish).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        url: expect.stringContaining("/api/workers/summarize"),
-        body: { conversationId: "conv-1", userId: "user-1" },
-      })
-    );
+    // Allow microtask to drain
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(mockDistill).toHaveBeenCalledWith("conv-1", "user-1");
+    expect(mockSummarize).toHaveBeenCalledWith("conv-1", "user-1");
   });
 
-  it("only publishes distill when summarize lag is less than 10", async () => {
-    const mockPublish = vi.fn().mockResolvedValue({ messageId: "msg_123" });
-    const mockClient = {
-      publishJSON: mockPublish,
-    } as unknown as Client;
+  it("only dispatches distill when summarize lag is less than 10", async () => {
+    const mockDistill = vi.fn().mockResolvedValue({ success: true, count: 1 });
+    const mockSummarize = vi.fn().mockResolvedValue({ success: true, updated: false });
 
-    setQStashClientForTesting(mockClient);
+    setTaskRunnerForTesting({
+      distill: mockDistill,
+      summarize: mockSummarize,
+    });
 
     await enqueueSideEffects("conv-1", "user-1", 5, 0);
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(mockPublish).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: expect.stringContaining("/api/workers/distill"),
-      })
-    );
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(mockDistill).toHaveBeenCalledWith("conv-1", "user-1");
+    expect(mockSummarize).not.toHaveBeenCalled();
   });
 
-  it("handles QStash publish failures without crashing callers", async () => {
-    const mockPublish = vi.fn().mockRejectedValue(new Error("QStash HTTP 500"));
-    const mockClient = {
-      publishJSON: mockPublish,
-    } as unknown as Client;
+  it("handles background task failures without crashing callers", async () => {
+    const mockDistill = vi.fn().mockRejectedValue(new Error("Database error"));
+    const mockSummarize = vi.fn().mockRejectedValue(new Error("LLM error"));
 
-    setQStashClientForTesting(mockClient);
+    setTaskRunnerForTesting({
+      distill: mockDistill,
+      summarize: mockSummarize,
+    });
 
     await expect(
       enqueueSideEffects("conv-fail", "user-fail", 20, 0)
     ).resolves.not.toThrow();
   });
 });
-

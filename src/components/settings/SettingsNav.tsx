@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, Sun, UserRound, type LucideIcon } from "lucide-react";
+import { Brain, Gauge, Sun, UserRound, type LucideIcon } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -27,6 +27,11 @@ const GROUPS: NavGroup[] = [
         href: "/settings/appearance",
         label: "Appearance",
         icon: Sun,
+      },
+      {
+        href: "/settings/usage",
+        label: "Usage & Limits",
+        icon: Gauge,
       },
     ],
   },

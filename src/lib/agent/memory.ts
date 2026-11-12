@@ -1,6 +1,6 @@
 import { WINDOW_MESSAGES } from "./budget";
 import { assembleSystemPrompt } from "./prompt";
-import { getConversation } from "@/lib/db/queries/conversations";
+import { getConversation, listConversations } from "@/lib/db/queries/conversations";
 import { getRecentMessages } from "@/lib/db/queries/messages";
 import { getUserMemories, touchMemories } from "@/lib/db/queries/memories";
 import type { Message } from "@/types";
@@ -34,19 +34,41 @@ export async function assemblePromptContext(
     recentMessages = await getRecentMessages(conversationId, WINDOW_MESSAGES);
   }
 
+  let pastTopics: string[] = [];
+  try {
+    const recentConvs = await listConversations(userId, 6);
+    pastTopics = recentConvs
+      .filter((c) => c.id !== conversationId && (c.title !== "New chat" || c.summary))
+      .slice(0, 5)
+      .map((c) => {
+        const dateStr = new Date(c.updatedAt).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+        const summaryPart = c.summary ? `: ${c.summary.slice(0, 160)}` : "";
+        return `- [${dateStr}] "${c.title}"${summaryPart}`;
+      });
+  } catch {}
+
   const effectiveSearch = searchEnabled ?? searchDefault;
   const memories = await getUserMemories(userId, MEMORY_MAX_ITEMS);
   if (memories.length > 0) {
     void touchMemories(memories.map((m) => m.id));
   }
-  const systemPrompt = assembleSystemPrompt(memories, summary, effectiveSearch);
+  const systemPrompt = assembleSystemPrompt(memories, summary, effectiveSearch, pastTopics);
 
   const window = recentMessages
     .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
+    .map((m) => {
+      const dateTag = m.createdAt
+        ? `[${new Date(m.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}] `
+        : "";
+      return {
+        role: m.role as "user" | "assistant",
+        content: `${dateTag}${m.content}`,
+      };
+    });
 
   return {
     systemPrompt,

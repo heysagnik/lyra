@@ -53,13 +53,10 @@ export function MessageBubble({
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   if (isUser) {
-    // The observer's entry: a right-aligned pill with its timestamp beneath
     return (
       <div className="flex w-full flex-col items-end py-2">
         <div className="max-w-[85%] rounded-2xl bg-[var(--color-surface-3)] px-4 py-2.5 text-sm leading-relaxed text-[var(--color-text)] break-words">
@@ -78,19 +75,27 @@ export function MessageBubble({
     );
   }
 
-  const hasToolPart = message.parts?.some(
-    (p) => p.type === "tool-invocation" || p.toolInvocation
+  const toolPart = message.parts?.find(
+    (p) =>
+      p.type === "tool-invocation" ||
+      p.type.startsWith("tool-") ||
+      "toolInvocation" in p ||
+      "toolCallId" in p
   );
+  const toolQuery =
+    (toolPart as { input?: { query?: string } })?.input?.query ||
+    (toolPart as { toolInvocation?: { args?: { query?: string } } })?.toolInvocation?.args?.query ||
+    (toolPart as { args?: { query?: string } })?.args?.query;
 
-  // Skip persisted empty rows (e.g. tool-role messages with no content)
+  const hasToolPart = !!toolPart || Boolean(message.sources && message.sources.length > 0);
+
   if (!message.content && !hasToolPart && !isLatestStreaming && !message.sources?.length) {
     return null;
   }
 
-  // The chart's answer: plain text at full width, actions beneath
   return (
     <div className="w-full py-3">
-      {hasToolPart && <ToolBadge isComplete={!isLatestStreaming} />}
+      {hasToolPart && <ToolBadge query={toolQuery} isComplete={!isLatestStreaming} />}
 
       {message.content ? (
         <Markdown content={message.content} />
@@ -108,7 +113,6 @@ export function MessageBubble({
         <SourcesRow sources={message.sources} />
       )}
 
-      {/* Message actions */}
       {!isLatestStreaming && message.content && (
         <div className="mt-2 flex items-center gap-1">
           <button

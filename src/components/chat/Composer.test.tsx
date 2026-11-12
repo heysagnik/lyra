@@ -85,4 +85,62 @@ describe("Composer Component", () => {
 
     expect(screen.queryByText("AGENT.md")).toBeNull();
   });
+
+  it("locks the model picker button when isModelLocked is true", () => {
+    const handleSend = vi.fn();
+    const handleStop = vi.fn();
+
+    render(
+      <Composer
+        onSend={handleSend}
+        isStreaming={false}
+        onStop={handleStop}
+        isModelLocked={true}
+      />
+    );
+
+    const modelButton = screen.getByTitle("Model cannot be changed once a conversation has started");
+    expect(modelButton).toBeDefined();
+    expect((modelButton as HTMLButtonElement).disabled).toBe(true);
+
+    // Clicking does not open the picker
+    fireEvent.click(modelButton);
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("allows selecting another registered model when unlocked", () => {
+    const handleSend = vi.fn();
+    const handleStop = vi.fn();
+
+    render(
+      <Composer
+        onSend={handleSend}
+        isStreaming={false}
+        onStop={handleStop}
+        isModelLocked={false}
+      />
+    );
+
+    const modelButton = screen.getByTitle("Choose model");
+    fireEvent.click(modelButton);
+
+    const options = screen.getAllByRole("option");
+    expect(options.length).toBeGreaterThanOrEqual(2);
+
+    // Select GPT-OSS 20B
+    const gptOssOption = options.find((opt) => opt.textContent?.includes("GPT-OSS 20B"));
+    expect(gptOssOption).toBeDefined();
+    if (gptOssOption) {
+      fireEvent.click(gptOssOption);
+    }
+
+    // Type and send
+    const textarea = screen.getByPlaceholderText("Send a Message");
+    fireEvent.change(textarea, { target: { value: "Testing model switch" } });
+
+    const sendButton = screen.getByLabelText("Send message");
+    fireEvent.click(sendButton);
+
+    expect(handleSend).toHaveBeenCalledWith("Testing model switch", true, "gpt-oss-20b");
+  });
 });

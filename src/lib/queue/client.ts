@@ -1,34 +1,19 @@
-import { Client } from "@upstash/qstash";
-import { getEnv } from "@/lib/env";
-import { logStructuredError } from "@/lib/errors";
+import { executeDistillTask, executeSummarizeTask } from "./tasks";
 
-let qstashClient: Client | undefined;
-let testClientOverride: Client | null = null;
-
-export function setQStashClientForTesting(client: Client | null) {
-  testClientOverride = client;
+export interface QueueTaskRunner {
+  distill: typeof executeDistillTask;
+  summarize: typeof executeSummarizeTask;
 }
 
-function getQStashClient(): Client | null {
-  if (testClientOverride) {
-    return testClientOverride;
-  }
-  try {
-    const env = getEnv();
-    if (!env.QSTASH_TOKEN || env.QSTASH_TOKEN.startsWith("sample_")) {
-      return null;
-    }
-    if (!qstashClient) {
-      qstashClient = new Client({ token: env.QSTASH_TOKEN });
-    }
-    return qstashClient;
-  } catch {
-    return null;
-  }
+let testTaskRunnerOverride: Partial<QueueTaskRunner> | null = null;
+
+export function setTaskRunnerForTesting(override: Partial<QueueTaskRunner> | null) {
+  testTaskRunnerOverride = override;
 }
 
 /**
  * Enqueue side-effect jobs for a conversation (fire-and-forget).
+ * Executes asynchronously in the background with zero external queue overhead.
  */
 export async function enqueueSideEffects(
   conversationId: string,
@@ -36,55 +21,13 @@ export async function enqueueSideEffects(
   msgCount = 0,
   summarizedCount = 0
 ): Promise<void> {
-  const client = getQStashClient();
-  const env = getEnv();
+  const distillFn = testTaskRunnerOverride?.distill || executeDistillTask;
+  const summarizeFn = testTaskRunnerOverride?.summarize || executeSummarizeTask;
 
-  // If QStash client is not configured (e.g. dev/test mode without credentials), log and return
-  if (!client) {
-    return;
-  }
-
-  const baseUrl = env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-  // 1. Enqueue distill job after assistant turn
-  try {
-    await client.publishJSON({
-      url: `${baseUrl}/api/workers/distill`,
-      body: { conversationId, userId },
-      headers: {
-        "x-worker-secret": env.WORKER_SECRET,
-      },
-      retries: 5,
-    });
-  } catch (err) {
-    logStructuredError({
-      userId,
-      conversationId,
-      code: "INTERNAL",
-      msg: "Failed to publish chat.distill to QStash",
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
-
-  // 2. Enqueue summarize job if lag >= 10
-  if (msgCount - summarizedCount >= 10) {
-    try {
-      await client.publishJSON({
-        url: `${baseUrl}/api/workers/summarize`,
-        body: { conversationId, userId },
-        headers: {
-          "x-worker-secret": env.WORKER_SECRET,
-        },
-        retries: 5,
-      });
-    } catch (err) {
-      logStructuredError({
-        userId,
-        conversationId,
-        code: "INTERNAL",
-        msg: "Failed to publish chat.summarize to QStash",
-        error: err instanceof Error ? err.message : String(err),
-      });
+  queueMicrotask(() => {
+    void distillFn(conversationId, userId);
+    if (msgCount - summarizedCount >= 10) {
+      void summarizeFn(conversationId, userId);
     }
-  }
+  });
 }

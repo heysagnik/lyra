@@ -1,7 +1,34 @@
-import { sql, gte, desc } from "drizzle-orm";
+import { sql, gte, desc, eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { usageEvents, jobFailures } from "@/lib/db/schema";
+import { RATE_PER_DAY, RATE_PER_MIN, MAX_INFLIGHT } from "@/lib/agent/budget";
 import type { UsageEvent, JobFailure } from "@/types";
+
+export interface UserUsageStats {
+  today: {
+    turns: number;
+    tokensIn: number;
+    tokensOut: number;
+    costUsd: number;
+    remainingDailyTurns: number;
+    dailyLimit: number;
+    percentUsed: number;
+  };
+  rateLimits: {
+    perMinute: number;
+    perDay: number;
+    maxInflight: number;
+  };
+  recentEvents: Array<{
+    id: number;
+    conversationId: string | null;
+    model: string | null;
+    tokensIn: number | null;
+    tokensOut: number | null;
+    costUsd: string | null;
+    createdAt: Date;
+  }>;
+}
 
 export async function recordUsageEvent(data: {
   userId: string;
@@ -128,4 +155,66 @@ export async function getRecentJobFailures(
     attempts: r.attempts,
     createdAt: r.createdAt,
   }));
+}
+
+export async function getUserUsageStats(userId: string): Promise<UserUsageStats> {
+  const db = getDb();
+  const startOfDay = new Date();
+  startOfDay.setUTCHours(0, 0, 0, 0);
+
+  // Aggregate today's usage from usageEvents
+  const todayAgg = await db
+    .select({
+      turns: sql<number>`COUNT(*)::int`,
+      tokensIn: sql<number>`COALESCE(SUM(${usageEvents.tokensIn}), 0)::int`,
+      tokensOut: sql<number>`COALESCE(SUM(${usageEvents.tokensOut}), 0)::int`,
+      costUsd: sql<string>`COALESCE(SUM(${usageEvents.costUsd}::numeric), 0)::text`,
+    })
+    .from(usageEvents)
+    .where(
+      and(
+        eq(usageEvents.userId, userId),
+        gte(usageEvents.createdAt, startOfDay)
+      )
+    );
+
+  const turnsToday = todayAgg[0]?.turns ?? 0;
+  const tokensInToday = todayAgg[0]?.tokensIn ?? 0;
+  const tokensOutToday = todayAgg[0]?.tokensOut ?? 0;
+  const costUsdToday = parseFloat(todayAgg[0]?.costUsd ?? "0");
+  const remainingDailyTurns = Math.max(0, RATE_PER_DAY - turnsToday);
+  const percentUsed = Math.min(100, Math.round((turnsToday / RATE_PER_DAY) * 100));
+
+  const recentRows = await db
+    .select()
+    .from(usageEvents)
+    .where(eq(usageEvents.userId, userId))
+    .orderBy(desc(usageEvents.createdAt))
+    .limit(20);
+
+  return {
+    today: {
+      turns: turnsToday,
+      tokensIn: tokensInToday,
+      tokensOut: tokensOutToday,
+      costUsd: costUsdToday,
+      remainingDailyTurns,
+      dailyLimit: RATE_PER_DAY,
+      percentUsed,
+    },
+    rateLimits: {
+      perMinute: RATE_PER_MIN,
+      perDay: RATE_PER_DAY,
+      maxInflight: MAX_INFLIGHT,
+    },
+    recentEvents: recentRows.map((r) => ({
+      id: r.id,
+      conversationId: r.conversationId,
+      model: r.model,
+      tokensIn: r.tokensIn,
+      tokensOut: r.tokensOut,
+      costUsd: r.costUsd,
+      createdAt: r.createdAt,
+    })),
+  };
 }

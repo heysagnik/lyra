@@ -45,7 +45,7 @@ export function ChatContainer({
     text: string;
     search: boolean;
   } | null>(null);
-  const [lastModel, setLastModel] = useState<"primary" | "fallback">("primary");
+  const [lastModel, setLastModel] = useState<string>("primary");
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isRenamingHeader, setIsRenamingHeader] = useState(false);
   const [headerTitle, setHeaderTitle] = useState("");
@@ -135,7 +135,7 @@ export function ChatContainer({
   const handleSend = (
     text: string,
     _search: boolean,
-    model: "primary" | "fallback" = "primary"
+    model: string = "primary"
   ) => {
     setLastFailedPrompt({ text, search: true });
     setLastModel(model);
@@ -166,6 +166,7 @@ export function ChatContainer({
       onSend={handleSend}
       isStreaming={isStreaming}
       onStop={stop}
+      isModelLocked={!isEmpty || isStreaming}
     />
   );
 

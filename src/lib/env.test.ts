@@ -20,22 +20,15 @@ describe("Environment Validation", () => {
     }).toThrow("DATABASE_URL is required");
   });
 
-  it("loads valid environment correctly", () => {
+  it("loads valid environment correctly without Upstash dependencies", () => {
     process.env.DATABASE_URL = "postgres://neon.tech/db";
     process.env.BETTER_AUTH_SECRET = "secret-key-that-is-long-enough-32";
     process.env.BETTER_AUTH_URL = "http://localhost:3000";
     process.env.GROQ_API_KEY = "gsk_123";
     process.env.TINYFISH_API_KEY = "tf_123";
-    process.env.UPSTASH_REDIS_REST_URL = "https://redis.upstash.io";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "token_123";
-    process.env.QSTASH_TOKEN = "qstash_123";
-    process.env.QSTASH_CURRENT_SIGNING_KEY = "key_current";
-    process.env.QSTASH_NEXT_SIGNING_KEY = "key_next";
-    process.env.WORKER_SECRET = "secret-worker-1234";
 
     const env = getEnv();
     expect(env).toBeDefined();
     expect(env.GROQ_MODEL_PRIMARY).toBe("qwen/qwen3.8-27b");
-    expect(env.GROQ_MODEL_FALLBACK).toBe("openai/gpt-oss-20b");
   });
 });

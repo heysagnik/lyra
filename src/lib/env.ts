@@ -16,22 +16,9 @@ const envSchema = z.object({
     .string({ required_error: "GROQ_API_KEY is required" })
     .min(1, "GROQ_API_KEY is required"),
   GROQ_MODEL_PRIMARY: z.string().default("qwen/qwen3.8-27b"),
-  GROQ_MODEL_FALLBACK: z.string().default("openai/gpt-oss-20b"),
   TINYFISH_API_KEY: z
     .string({ required_error: "TINYFISH_API_KEY is required" })
     .min(1, "TINYFISH_API_KEY is required"),
-  UPSTASH_REDIS_REST_URL: z
-    .string({ required_error: "UPSTASH_REDIS_REST_URL is required" })
-    .url("UPSTASH_REDIS_REST_URL must be a valid URL"),
-  UPSTASH_REDIS_REST_TOKEN: z
-    .string({ required_error: "UPSTASH_REDIS_REST_TOKEN is required" })
-    .min(1, "UPSTASH_REDIS_REST_TOKEN is required"),
-  QSTASH_TOKEN: z.string().optional().default(""),
-  QSTASH_CURRENT_SIGNING_KEY: z.string().optional().default(""),
-  QSTASH_NEXT_SIGNING_KEY: z.string().optional().default(""),
-  WORKER_SECRET: z
-    .string({ required_error: "WORKER_SECRET is required" })
-    .min(16, "WORKER_SECRET must be at least 16 characters"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 });
 
@@ -52,14 +39,7 @@ export function getEnv(): Env {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GROQ_MODEL_PRIMARY: process.env.GROQ_MODEL_PRIMARY,
-    GROQ_MODEL_FALLBACK: process.env.GROQ_MODEL_FALLBACK,
     TINYFISH_API_KEY: process.env.TINYFISH_API_KEY,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-    QSTASH_TOKEN: process.env.QSTASH_TOKEN,
-    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
-    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
-    WORKER_SECRET: process.env.WORKER_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   });
 
@@ -76,9 +56,6 @@ export function getEnv(): Env {
   return parsedEnv;
 }
 
-/**
- * Validates environment variables or throws on boot.
- */
-export function validateEnv(): Env {
-  return getEnv();
+export function validateEnvOrThrow(): void {
+  getEnv();
 }

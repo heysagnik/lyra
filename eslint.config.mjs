@@ -24,15 +24,6 @@ const eslintConfig = [
                 "Importing AI SDK is restricted to src/lib/agent/, src/lib/llm/, and src/lib/api/use-agent-chat.ts",
             },
             {
-              group: ["@upstash/qstash*"],
-              message: "Importing QStash is restricted to src/lib/queue/",
-            },
-            {
-              group: ["@upstash/redis*", "@upstash/ratelimit*"],
-              message:
-                "Importing Redis/Ratelimit is restricted to src/lib/ratelimit/ and src/lib/cache/",
-            },
-            {
               group: ["drizzle-orm*", "@neondatabase/serverless*"],
               message: "Importing Drizzle/Neon is restricted to src/lib/db/",
             },

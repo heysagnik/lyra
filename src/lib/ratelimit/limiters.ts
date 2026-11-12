@@ -1,6 +1,6 @@
-import { Redis } from "@upstash/redis";
-import { Ratelimit } from "@upstash/ratelimit";
-import { getEnv } from "@/lib/env";
+import { sql, and, eq, gte } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { usageEvents } from "@/lib/db/schema";
 import { RATE_PER_MIN, RATE_PER_DAY, MAX_INFLIGHT } from "@/lib/agent/budget";
 
 export interface RateLimitDecision {
@@ -8,10 +8,6 @@ export interface RateLimitDecision {
   retryAfter?: number;
   release?: () => Promise<void>;
 }
-
-let redisInstance: Redis | null = null;
-let minLimiter: Ratelimit | null = null;
-let dayLimiter: Ratelimit | null = null;
 
 let testLimitersOverride: {
   minLimiter: { limit: (id: string) => Promise<{ success: boolean; reset: number }> };
@@ -22,136 +18,139 @@ export function setLimitersForTesting(override: typeof testLimitersOverride) {
   testLimitersOverride = override;
 }
 
-function getRedis(): Redis | null {
+// In-memory tracking for in-flight requests per user with automatic TTL lease recovery
+interface InFlightLease {
+  count: number;
+  lastActive: number;
+}
+
+const INFLIGHT_LEASE_TTL_MS = 120_000; // 2 minutes auto-recovery
+const inFlightLeases = new Map<string, InFlightLease>();
+
+function getActiveInFlight(userId: string): number {
+  const lease = inFlightLeases.get(userId);
+  if (!lease) return 0;
+  if (Date.now() - lease.lastActive > INFLIGHT_LEASE_TTL_MS) {
+    inFlightLeases.delete(userId);
+    return 0;
+  }
+  return lease.count;
+}
+
+function incrementInFlight(userId: string): void {
+  const current = getActiveInFlight(userId);
+  inFlightLeases.set(userId, { count: current + 1, lastActive: Date.now() });
+}
+
+function decrementInFlight(userId: string): void {
+  const lease = inFlightLeases.get(userId);
+  if (!lease || lease.count <= 1) {
+    inFlightLeases.delete(userId);
+  } else {
+    inFlightLeases.set(userId, { count: lease.count - 1, lastActive: Date.now() });
+  }
+}
+
+/**
+ * Check rate limits directly against the Postgres usage_events table:
+ * - 20 requests per minute (sliding window)
+ * - 300 requests per day (UTC day ceiling)
+ */
+async function checkUsageEventsRateLimit(
+  userId: string
+): Promise<{ ok: boolean; retryAfter?: number }> {
   try {
-    const env = getEnv();
-    if (
-      !env.UPSTASH_REDIS_REST_URL ||
-      env.UPSTASH_REDIS_REST_URL.includes("sample-redis") ||
-      !env.UPSTASH_REDIS_REST_TOKEN ||
-      env.UPSTASH_REDIS_REST_TOKEN.startsWith("sample_")
-    ) {
-      return null;
+    const db = getDb();
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const [row] = await db
+      .select({
+        countMin: sql<number>`COUNT(*) FILTER (WHERE ${usageEvents.createdAt} >= ${oneMinuteAgo})::int`,
+        countDay: sql<number>`COUNT(*)::int`,
+        oldestInMin: sql<Date | null>`MIN(${usageEvents.createdAt}) FILTER (WHERE ${usageEvents.createdAt} >= ${oneMinuteAgo})`,
+      })
+      .from(usageEvents)
+      .where(
+        and(
+          eq(usageEvents.userId, userId),
+          gte(usageEvents.createdAt, startOfDay)
+        )
+      );
+
+    const turnsInMin = row?.countMin ?? 0;
+    const turnsInDay = row?.countDay ?? 0;
+
+    if (turnsInMin >= RATE_PER_MIN) {
+      const oldest = row?.oldestInMin ? new Date(row.oldestInMin).getTime() : Date.now();
+      const retryAfter = Math.max(1, Math.ceil((oldest + 60 * 1000 - Date.now()) / 1000));
+      return { ok: false, retryAfter };
     }
-    if (!redisInstance) {
-      redisInstance = new Redis({
-        url: env.UPSTASH_REDIS_REST_URL,
-        token: env.UPSTASH_REDIS_REST_TOKEN,
-      });
+
+    if (turnsInDay >= RATE_PER_DAY) {
+      const nextDay = new Date(startOfDay.getTime() + 86400 * 1000).getTime();
+      const retryAfter = Math.max(1, Math.ceil((nextDay - Date.now()) / 1000));
+      return { ok: false, retryAfter };
     }
-    return redisInstance;
+
+    return { ok: true };
   } catch {
-    return null;
+    // If DB check fails, degrade gracefully
+    return { ok: true };
   }
 }
-
-function getLimiters() {
-  if (testLimitersOverride) {
-    return testLimitersOverride;
-  }
-  const redis = getRedis();
-  if (!redis) return null;
-
-  if (!minLimiter) {
-    minLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(RATE_PER_MIN, "60 s"),
-      prefix: "ratelimit:min",
-    });
-  }
-  if (!dayLimiter) {
-    dayLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(RATE_PER_DAY, "86400 s"),
-      prefix: "ratelimit:day",
-    });
-  }
-  return { redis, minLimiter, dayLimiter };
-}
-
-// In-memory tracking for in-flight requests or fallback
-const inFlightCount = new Map<string, number>();
 
 export async function checkRateLimits(userId: string): Promise<RateLimitDecision> {
-  const limiters = getLimiters();
-  const redis = limiters && "redis" in limiters ? limiters.redis : null;
-
-  // Check in-flight first (distributed via Redis when available, in-memory fallback)
-  if (redis) {
-    const key = `inflight:${userId}`;
-    const inflight = await redis.incr(key);
-    if (inflight === 1) {
-      await redis.expire(key, 60);
-    }
-    if (inflight > MAX_INFLIGHT) {
-      await redis.decr(key);
-      return {
-        ok: false,
-        retryAfter: 2,
-      };
-    }
-  } else {
-    const currentInFlight = inFlightCount.get(userId) || 0;
-    if (currentInFlight >= MAX_INFLIGHT) {
-      return {
-        ok: false,
-        retryAfter: 2,
-      };
-    }
-    inFlightCount.set(userId, currentInFlight + 1);
+  // 1. Check in-flight concurrency cap (MAX_INFLIGHT = 2)
+  const currentInFlight = getActiveInFlight(userId);
+  if (currentInFlight >= MAX_INFLIGHT) {
+    return {
+      ok: false,
+      retryAfter: 2,
+    };
   }
+  incrementInFlight(userId);
 
-  // If Redis configured, check Upstash sliding windows
-  if (limiters) {
+  const release = async () => decrementInFlight(userId);
+
+  // 2. Testing override path
+  if (testLimitersOverride) {
     const [minRes, dayRes] = await Promise.all([
-      limiters.minLimiter.limit(userId),
-      limiters.dayLimiter.limit(userId),
+      testLimitersOverride.minLimiter.limit(userId),
+      testLimitersOverride.dayLimiter.limit(userId),
     ]);
 
     if (!minRes.success) {
-      if (redis) {
-        await redis.decr(`inflight:${userId}`);
-      } else {
-        const count = inFlightCount.get(userId) || 1;
-        if (count <= 1) inFlightCount.delete(userId);
-        else inFlightCount.set(userId, count - 1);
-      }
+      decrementInFlight(userId);
       const retryAfter = Math.ceil((minRes.reset - Date.now()) / 1000);
       return { ok: false, retryAfter: Math.max(1, retryAfter) };
     }
 
     if (!dayRes.success) {
-      if (redis) {
-        await redis.decr(`inflight:${userId}`);
-      } else {
-        const count = inFlightCount.get(userId) || 1;
-        if (count <= 1) inFlightCount.delete(userId);
-        else inFlightCount.set(userId, count - 1);
-      }
+      decrementInFlight(userId);
       const retryAfter = Math.ceil((dayRes.reset - Date.now()) / 1000);
       return { ok: false, retryAfter: Math.max(1, retryAfter) };
     }
+
+    return {
+      ok: true,
+      release,
+    };
   }
 
-  const release = async () => {
-    if (redis) {
-      try {
-        const remaining = await redis.decr(`inflight:${userId}`);
-        if (remaining <= 0) {
-          await redis.del(`inflight:${userId}`);
-        }
-      } catch {
-        // ignore
-      }
-    } else {
-      const count = inFlightCount.get(userId) || 1;
-      if (count <= 1) {
-        inFlightCount.delete(userId);
-      } else {
-        inFlightCount.set(userId, count - 1);
-      }
-    }
-  };
+  // 3. Postgres usage_events based rate limiting
+  const dbDecision = await checkUsageEventsRateLimit(userId);
+  if (!dbDecision.ok) {
+    decrementInFlight(userId);
+    return {
+      ok: false,
+      retryAfter: dbDecision.retryAfter ?? 1,
+    };
+  }
 
-  return { ok: true, release };
+  return {
+    ok: true,
+    release,
+  };
 }
