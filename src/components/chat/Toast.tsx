@@ -29,7 +29,7 @@ export function Toast({ message, onRetry, onDismiss }: ToastProps) {
 
       <button
         onClick={onDismiss}
-        className="rounded p-1 transition-colors duration-[var(--duration-normal)] hover:text-[var(--text)]"
+        className="rounded p-1 transition-[color,transform] duration-[var(--duration-normal)] hover:text-[var(--text)] active:scale-[0.96]"
         aria-label="Dismiss error"
       >
         <XIcon className="h-3.5 w-3.5" />

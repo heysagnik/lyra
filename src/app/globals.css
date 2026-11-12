@@ -86,6 +86,7 @@
   --shadow-composer: 0 1px 2px #0000000d;
   --shadow-composer-focus: 0 1px 2px #0000000d, inset 0 0 0 1px #c7c7c7;
   --shadow-control: 0 1px 2px #00000012;
+  --shadow-popover: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-drawer: 0 10px 25px #00000017;
   --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-focus);
 
@@ -144,6 +145,7 @@
   --shadow-composer: 0 1px 2px #0000000d;
   --shadow-composer-focus: 0 1px 2px #0000000d, inset 0 0 0 1px #c7c7c7;
   --shadow-control: 0 1px 2px #00000012;
+  --shadow-popover: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-color-scheme: light) {
@@ -174,6 +176,7 @@
     --shadow-composer: 0 1px 2px #0000000d;
     --shadow-composer-focus: 0 1px 2px #0000000d, inset 0 0 0 1px #c7c7c7;
     --shadow-control: 0 1px 2px #00000012;
+    --shadow-popover: 0 10px 30px -5px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -206,6 +209,7 @@
     --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
     --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     --shadow-control: 0 6px 18px rgba(0, 0, 0, 0.4);
+    --shadow-popover: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -249,6 +253,8 @@
   --shadow-composer: 0 10px 28px rgba(0, 0, 0, 0.5);
   --shadow-composer-focus: 0 12px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   --shadow-control: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-drawer: 0 10px 25px #00000017;
 }
 
 /* ─── Component aliases (legacy names used across components) ──── */
@@ -266,7 +272,6 @@
   --accent-soft: var(--color-accent-muted);
   --danger: var(--color-danger);
   --danger-ground: var(--color-danger-muted);
-  --ease-out: var(--ease-standard);
 }
 
 body {
@@ -417,6 +422,56 @@ input:focus {
   animation: pop-in 140ms var(--ease-standard) backwards;
 }
 
+/* Icon swaps (copy → check, share → copied): tiny pop from ~scale 0.6,
+   never from 0, with the same ease as the rest of the UI */
+@keyframes icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.icon-in {
+  animation: icon-in 160ms var(--ease-standard) backwards;
+}
+
+/* Jump-to-latest pill: keyframe keeps translateX(-50%) so the pill
+   doesn't slide sideways while rising in */
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pill-in {
+  animation: pill-in var(--duration-slow) var(--ease-standard) backwards;
+}
+
+/* Attachment cards: rise into place, never appear from nothing */
+@keyframes attach-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.attach-in {
+  animation: attach-in var(--duration-slow) var(--ease-standard) backwards;
+}
+
 /* Scrims/backdrops fade rather than pop */
 @keyframes fade-in {
   from {
@@ -489,6 +544,9 @@ input:focus {
   .popover-in-left,
   .fade-in,
   .toast-in,
+  .icon-in,
+  .pill-in,
+  .attach-in,
   .thinking-star,
   .aura-breathe {
     animation: none;

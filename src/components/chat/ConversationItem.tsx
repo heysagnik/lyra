@@ -104,18 +104,18 @@ export function ConversationItem({
 
   if (showConfirmDelete) {
     return (
-      <div className="flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--danger-ground)] px-3 py-2 text-xs">
+      <div className="rise-in flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--danger-ground)] px-3 py-2 text-xs">
         <span className="text-[var(--danger)]">Delete chat?</span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleDelete}
-            className="rounded bg-[var(--danger)] px-2 py-0.5 font-medium text-[var(--color-on-danger)] transition-opacity hover:opacity-90"
+            className="rounded bg-[var(--danger)] px-2 py-0.5 font-medium text-[var(--color-on-danger)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
           >
             Delete
           </button>
           <button
             onClick={() => setShowConfirmDelete(false)}
-            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-muted)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.96]"
           >
             Keep
           </button>
@@ -186,7 +186,7 @@ export function ConversationItem({
             ref={menuRef}
             role="menu"
             aria-label={`Options for ${conversation.title}`}
-            className="popover-in absolute right-2 top-full z-50 mt-1.5 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18),0_2px_6px_rgba(0,0,0,0.1)]"
+            className="popover-in absolute right-2 top-full z-50 mt-1.5 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-popover)]"
           >
             <button
               role="menuitem"

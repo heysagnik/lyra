@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ListIcon, CaretDownIcon, ShareNetworkIcon, CheckIcon, PencilIcon, TrashIcon, SidebarIcon } from "@phosphor-icons/react";
+import { ListIcon, CaretDownIcon, ShareFatIcon , CheckIcon, PencilIcon, TrashIcon, SidebarIcon } from "@phosphor-icons/react";
 import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
@@ -283,13 +283,13 @@ export function ChatContainer({
               >
                 {shared ? (
                   <>
-                    <CheckIcon aria-hidden className="h-4 w-4 text-[var(--color-success)]" />
+                    <CheckIcon aria-hidden key="copied" className="icon-in h-4 w-4 text-[var(--color-success)]" />
                     <span className="hidden sm:inline">Copied</span>
                   </>
                 ) : (
                   <>
-                    <ShareNetworkIcon aria-hidden className="h-4 w-4" />
-                    <span className="hidden sm:inline">ShareNetwork</span>
+                    <ShareFatIcon aria-hidden className="h-4 w-4" />
+                    <span className="hidden sm:inline">Share</span>
                   </>
                 )}
               </button>

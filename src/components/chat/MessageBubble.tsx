@@ -130,7 +130,7 @@ export function MessageBubble({
             className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
           >
             {copied ? (
-              <CheckIcon aria-hidden className="h-3.5 w-3.5 text-[var(--color-success)]" />
+              <CheckIcon aria-hidden key="copied" className="icon-in h-3.5 w-3.5 text-[var(--color-success)]" />
             ) : (
               <CopyIcon aria-hidden className="h-3.5 w-3.5" />
             )}

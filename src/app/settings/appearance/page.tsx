@@ -31,7 +31,7 @@ function ThemePreview({ mode }: { mode: ThemeValue }) {
     >
       {/* Mini app window */}
       <div
-        className="flex h-16 flex-col justify-between rounded-[var(--radius-sm)] px-2 py-2"
+        className="flex h-12 flex-col justify-between rounded-[var(--radius-sm)] px-1.5 py-1.5"
         style={{ background: surface, color: text }}
       >
         <div
@@ -97,7 +97,7 @@ export default function AppearanceSettingsPage() {
           Theme
         </h2>
         <div className="rounded-[var(--radius-xl)] bg-[var(--color-surface-1)] p-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="flex gap-1.5 sm:grid sm:grid-cols-3 sm:gap-2">
             {THEMES.map(({ value, label, icon: Icon }) => {
               const selected = theme === value;
               return (
@@ -106,15 +106,15 @@ export default function AppearanceSettingsPage() {
                   type="button"
                   onClick={() => applyTheme(value)}
                   aria-pressed={selected}
-                  className={`relative rounded-[var(--radius-lg)] border p-1.5 text-left transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] active:scale-[0.98] ${
+                  className={`relative flex-1 rounded-[var(--radius-lg)] border p-1 text-left transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] active:scale-[0.98] ${
                     selected
                       ? "border-[var(--color-update)] shadow-[0_0_0_1px_var(--color-update)]"
                       : "border-transparent hover:border-[var(--color-border-strong)]"
                   }`}
                 >
                   <ThemePreview mode={value} />
-                  <span className="mt-2 flex items-center justify-center gap-1.5 pb-1.5 text-sm text-[var(--color-text)]">
-                    <Icon aria-hidden className="h-3.5 w-3.5" />
+                  <span className="mt-1.5 flex items-center justify-center gap-1 pb-1 text-[11px] leading-none text-[var(--color-text)]">
+                    <Icon aria-hidden className="h-3 w-3" />
                     {label}
                   </span>
                   {selected && (

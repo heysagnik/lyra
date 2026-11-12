@@ -42,12 +42,6 @@ function getFileExtension(filename: string): string {
   return "TXT";
 }
 
-function formatFileSize(bytes?: number): string | null {
-  if (bytes === undefined || isNaN(bytes)) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
-}
-
 export function Composer({
   onSend,
   isStreaming,
@@ -228,48 +222,38 @@ export function Composer({
             : "border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-composer)]"
         } transition-[border-color,background-color] duration-[var(--duration-normal)] focus-within:border-[var(--color-border-strong)] focus-within:shadow-[var(--shadow-composer-focus)]`}
       >
-        {/* Attachment cards matching Claude/Kimi card UX */}
+        {/* Attachments — simple one-line chips, horizontal scroll */}
         {attachments.length > 0 && (
-          <div className="flex gap-2.5 overflow-x-auto px-3.5 pt-3.5 pb-1 sm:px-4 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto px-3 pt-3 pb-1 sm:gap-2 sm:px-4 scrollbar-none">
             {attachments.map((a) => {
               const ext = getFileExtension(a.name);
-              const formattedSize = formatFileSize(a.size);
               return (
                 <div
                   key={a.name}
-                  className="group relative flex h-[132px] w-[132px] shrink-0 flex-col justify-between rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-canvas)] p-3 shadow-sm transition-[border-color,background-color,transform] duration-[var(--duration-fast)] hover:border-[var(--color-accent)]/30 sm:h-[136px] sm:w-[136px] sm:p-3.5"
+                  className="attach-in group flex h-7 max-w-[60vw] shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-canvas)] pl-2 pr-1 transition-[border-color,background-color] duration-[var(--duration-fast)] hover:border-[var(--color-accent)]/40"
                 >
-                  {/* Top: Name & Remove button */}
-                  <div className="flex items-start justify-between gap-1">
-                    <span
-                      title={a.name}
-                      className="truncate text-[13px] font-medium leading-tight text-[var(--color-text)]"
-                    >
-                      {a.name}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${a.name}`}
-                      onClick={() =>
-                        setAttachments((prev) => prev.filter((x) => x.name !== a.name))
-                      }
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-muted)] text-[var(--color-text-tertiary)] transition-[background-color,color] duration-[var(--duration-fast)] hover:bg-[var(--color-accent)]/15 hover:text-[var(--color-text)]"
-                    >
-                      <XIcon aria-hidden className="h-3 w-3" />
-                    </button>
-                  </div>
-
-                  {/* Bottom: Extension pill & optional file size */}
-                  <div className="flex items-center justify-between">
-                    <span className="rounded-full border border-[var(--color-border)]/40 bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-[var(--color-text-secondary)]">
-                      {ext}
-                    </span>
-                    {formattedSize && (
-                      <span className="text-[10px] text-[var(--color-text-tertiary)] tabular-nums">
-                        {formattedSize}
-                      </span>
-                    )}
-                  </div>
+                  <span
+                    aria-hidden
+                    className="shrink-0 rounded-full bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-[var(--color-text-secondary)]"
+                  >
+                    {ext}
+                  </span>
+                  <span
+                    title={a.name}
+                    className="min-w-0 flex-1 truncate text-[11px] font-medium leading-none text-[var(--color-text)] sm:text-xs"
+                  >
+                    {a.name}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${a.name}`}
+                    onClick={() =>
+                      setAttachments((prev) => prev.filter((x) => x.name !== a.name))
+                    }
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[var(--color-text-tertiary)] transition-[background-color,color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-accent)]/15 hover:text-[var(--color-text)] active:scale-[0.96]"
+                  >
+                    <XIcon aria-hidden className="h-2.5 w-2.5" />
+                  </button>
                 </div>
               );
             })}
@@ -349,7 +333,7 @@ export function Composer({
               </button>
 
               {pickerOpen && (
-                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-60 rounded-[var(--radius-lg)] border border-white/10 bg-[var(--color-surface-1)] p-2 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.6),0_4px_12px_rgba(0,0,0,0.4)] backdrop-blur-md">
+                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-60 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2 shadow-[var(--shadow-popover)]">
                   {!isModelLocked && (
                   <div>
                   <div role="listbox" aria-label="Model" className="space-y-0.5">
@@ -469,8 +453,7 @@ export function Composer({
                               : effort === "standard"
                               ? "calc(50% - 18px)"
                               : "calc(100% - 40px)",
-                          boxShadow:
-                            "0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)",
+                          boxShadow: "var(--shadow-control)",
                         }}
                       />
 
