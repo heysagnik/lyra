@@ -30,4 +30,35 @@ describe("Markdown Component & Security", () => {
     expect(container.textContent).toContain("typescript");
     expect(container.textContent).toContain("Copy");
   });
+
+  it("renders interactive citation badges and reveals source card on hover", async () => {
+    const sources = [
+      {
+        title: "Neon Serverless Postgres",
+        url: "https://neon.tech",
+        snippet: "Neon is a serverless open-source alternative to AWS Aurora Postgres.",
+      },
+    ];
+
+    const { container, findByRole } = render(
+      <Markdown content="Neon is serverless [1] according to docs." sources={sources} />
+    );
+
+    const badge = container.querySelector("a[aria-label^='Source 1:']");
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe("1");
+    expect(badge?.getAttribute("href")).toBe("https://neon.tech");
+
+    // Hover reveals the floating source card popover
+    const badgeWrapper = badge?.parentElement;
+    if (badgeWrapper) {
+      const { fireEvent } = await import("@testing-library/react");
+      fireEvent.mouseEnter(badgeWrapper);
+      const tooltip = await findByRole("tooltip");
+      expect(tooltip).toBeDefined();
+      expect(tooltip.textContent).toContain("Neon Serverless Postgres");
+      expect(tooltip.textContent).toContain("neon.tech");
+      expect(tooltip.textContent).toContain("alternative to AWS Aurora");
+    }
+  });
 });

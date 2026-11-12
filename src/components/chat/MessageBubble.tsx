@@ -78,16 +78,23 @@ export function MessageBubble({
   const toolPart = message.parts?.find(
     (p) =>
       p.type === "tool-invocation" ||
+      p.type === "tool-call" ||
+      p.type === "tool-input-available" ||
       p.type.startsWith("tool-") ||
       "toolInvocation" in p ||
       "toolCallId" in p
   );
+  const dbToolCall = (message.toolCalls as Array<{ query?: string } | undefined>)?.[0];
   const toolQuery =
     (toolPart as { input?: { query?: string } })?.input?.query ||
+    (toolPart as { args?: { query?: string } })?.args?.query ||
     (toolPart as { toolInvocation?: { args?: { query?: string } } })?.toolInvocation?.args?.query ||
-    (toolPart as { args?: { query?: string } })?.args?.query;
+    dbToolCall?.query;
 
-  const hasToolPart = !!toolPart || Boolean(message.sources && message.sources.length > 0);
+  const hasToolPart =
+    !!toolPart ||
+    Boolean(message.sources && message.sources.length > 0) ||
+    Boolean(message.toolCalls && (message.toolCalls as unknown[]).length > 0);
 
   if (!message.content && !hasToolPart && !isLatestStreaming && !message.sources?.length) {
     return null;
@@ -98,7 +105,7 @@ export function MessageBubble({
       {hasToolPart && <ToolBadge query={toolQuery} isComplete={!isLatestStreaming} />}
 
       {message.content ? (
-        <Markdown content={message.content} />
+        <Markdown content={message.content} sources={message.sources} />
       ) : isLatestStreaming ? (
         <div className="flex items-center gap-2 py-1 text-xs text-[var(--color-text-faint)]">
           <span

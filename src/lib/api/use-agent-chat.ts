@@ -23,6 +23,7 @@ export interface AgentChatMessage {
   content: string;
   parts?: ChatMessagePart[];
   sources?: SearchSource[];
+  toolCalls?: unknown | null;
   createdAt?: Date;
 }
 
@@ -43,6 +44,7 @@ export function useAgentChat({
     conversationId
   );
   const [currentSources, setCurrentSources] = useState<SearchSource[]>([]);
+  const [sourcesByMsgId, setSourcesByMsgId] = useState<Record<string, SearchSource[]>>({});
 
   useEffect(() => {
     setActiveConversationId(conversationId);
@@ -79,8 +81,15 @@ export function useAgentChat({
         }
         if (part.type === "data-sources" && part.data) {
           const sourcesData = part.data as { items: SearchSource[] };
-          if (Array.isArray(sourcesData.items)) {
+          if (Array.isArray(sourcesData.items) && sourcesData.items.length > 0) {
             setCurrentSources(sourcesData.items);
+            setMessages((prev) => {
+              const lastAssist = [...prev].reverse().find((m) => m.role === "assistant");
+              if (lastAssist?.id) {
+                setSourcesByMsgId((s) => ({ ...s, [lastAssist.id]: sourcesData.items }));
+              }
+              return prev;
+            });
           }
         }
       }
@@ -92,6 +101,7 @@ export function useAgentChat({
   // text from them.
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
+      const initialMap: Record<string, SearchSource[]> = {};
       const hydrated = initialMessages.map((m) => {
         const parts: ChatMessagePart[] = [];
         if (m.content) {
@@ -99,9 +109,18 @@ export function useAgentChat({
         }
         if (m.sources?.length) {
           parts.push({ type: "data-sources", data: { items: m.sources } });
+          initialMap[m.id] = m.sources;
         }
-        return { id: m.id, role: m.role, parts, sources: m.sources };
+        return {
+          id: m.id,
+          role: m.role,
+          parts,
+          sources: m.sources,
+          toolCalls: m.toolCalls,
+          createdAt: m.createdAt,
+        };
       });
+      setSourcesByMsgId((prev) => ({ ...prev, ...initialMap }));
       setMessages(hydrated as unknown as Parameters<typeof setMessages>[0]);
     }
   }, [initialMessages, setMessages]);
@@ -113,6 +132,16 @@ export function useAgentChat({
       modelOverride?: string,
       effortOverride?: "low" | "standard" | "max"
     ) => {
+      // Freeze any active sources into the last assistant message before clearing
+      if (currentSources.length > 0) {
+        setMessages((prev) => {
+          const lastAssist = [...prev].reverse().find((m) => m.role === "assistant");
+          if (lastAssist?.id) {
+            setSourcesByMsgId((s) => ({ ...s, [lastAssist.id]: currentSources }));
+          }
+          return prev;
+        });
+      }
       setCurrentSources([]);
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
 
@@ -129,7 +158,7 @@ export function useAgentChat({
         }
       );
     },
-    [rawSendMessage, activeConversationId, searchDefault]
+    [rawSendMessage, activeConversationId, searchDefault, currentSources, setMessages]
   );
 
   const isStreaming = status === "streaming" || status === "submitted";
@@ -147,20 +176,28 @@ export function useAgentChat({
       let sources: SearchSource[] | undefined;
       const parts = (m.parts as ChatMessagePart[] | undefined) || [];
 
-      const textContent = parts
-        .filter((p) => p.type === "text" && typeof p.text === "string")
-        .map((p) => p.text)
-        .join("");
+      const textContent =
+        parts
+          .filter((p) => p.type === "text" && typeof p.text === "string")
+          .map((p) => p.text)
+          .join("") ||
+        (typeof (m as unknown as { content?: string }).content === "string"
+          ? (m as unknown as { content?: string }).content!
+          : "");
 
       for (const p of parts) {
         if (p.type === "data-sources" && p.data) {
           const s = (p.data as { items?: SearchSource[] }).items;
-          if (Array.isArray(s)) sources = s;
+          if (Array.isArray(s) && s.length > 0) sources = s;
         }
         if (p.type.startsWith("tool-") && (p as { output?: unknown }).output) {
           const out = (p as { output?: { sources?: SearchSource[] } }).output;
-          if (Array.isArray(out?.sources)) sources = out.sources;
+          if (Array.isArray(out?.sources) && out.sources.length > 0) sources = out.sources;
         }
+      }
+
+      if (!sources && sourcesByMsgId[m.id]) {
+        sources = sourcesByMsgId[m.id];
       }
 
       if (!sources && (m as unknown as { sources?: SearchSource[] }).sources?.length) {
@@ -172,15 +209,28 @@ export function useAgentChat({
           ? currentSources
           : undefined;
 
+      const finalSources = sources || fallbackSources;
+
+      const toolCalls =
+        (m as unknown as { toolCalls?: unknown }).toolCalls ||
+        parts.filter(
+          (p) =>
+            p.type === "tool-invocation" ||
+            p.type === "tool-call" ||
+            p.type === "tool-input-available" ||
+            p.type.startsWith("tool-")
+        );
+
       return {
         id: m.id,
         role: m.role as "user" | "assistant" | "system",
         content: textContent,
         parts,
-        sources: sources || fallbackSources,
+        sources: finalSources,
+        toolCalls: toolCalls && (toolCalls as unknown[]).length > 0 ? toolCalls : undefined,
       };
     });
-  }, [messages, currentSources]);
+  }, [messages, currentSources, sourcesByMsgId]);
 
   return {
     conversationId: activeConversationId,

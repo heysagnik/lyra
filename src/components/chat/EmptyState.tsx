@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Asterisk } from "lucide-react";
-import { useSession } from "@/lib/auth/client";
+
 
 function getGreeting(date: Date): string {
   const h = date.getHours();
@@ -20,10 +19,8 @@ function getSubtitle(date: Date): string {
 }
 
 export function EmptyState() {
-  const { data: session } = useSession();
   const [greeting, setGreeting] = useState(() => getGreeting(new Date()));
   const [subtitle, setSubtitle] = useState(() => getSubtitle(new Date()));
-  const name = session?.user?.name?.trim();
 
   useEffect(() => {
     document.title = "lyra — chat agent";
@@ -33,7 +30,6 @@ export function EmptyState() {
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-4 pb-28 sm:pb-32">
-      {/* Ambient ethereal aura gradients with subtle chromatic depth */}
       <div
         aria-hidden
         className="fade-in pointer-events-none absolute inset-0 select-none overflow-hidden"
@@ -42,15 +38,10 @@ export function EmptyState() {
           className="aura-breathe absolute inset-0"
           style={{
             background: [
-              // Core luminous bloom directly centered behind the 2-liner heading
               "radial-gradient(ellipse 58% 44% at 50% 45%, color-mix(in srgb, var(--color-accent) 22%, var(--color-aura)) 0%, color-mix(in srgb, var(--color-aura) 55%, transparent) 42%, transparent 74%)",
-              // Soft azure / sky atmospheric light offset to top-left
               "radial-gradient(ellipse 44% 34% at 36% 38%, color-mix(in srgb, var(--color-update) 18%, transparent) 0%, transparent 68%)",
-              // Soft violet / orchid ambient bloom offset to center-right
               "radial-gradient(ellipse 46% 36% at 64% 46%, color-mix(in srgb, #9333ea 14%, color-mix(in srgb, var(--color-accent) 18%, transparent)) 0%, transparent 68%)",
-              // Gentle warm champagne / rose accent whisper
               "radial-gradient(ellipse 36% 28% at 52% 35%, color-mix(in srgb, #f472b6 9%, transparent) 0%, transparent 70%)",
-              // Wide atmospheric dispersion
               "radial-gradient(ellipse 85% 65% at 50% 48%, color-mix(in srgb, var(--color-aura) 70%, transparent) 0%, transparent 82%)",
             ].join(", "),
             maskImage:
@@ -60,7 +51,6 @@ export function EmptyState() {
           }}
         />
 
-        {/* Subtle top-down atmospheric sheen */}
         <div
           className="absolute inset-0"
           style={{
@@ -75,16 +65,10 @@ export function EmptyState() {
           suppressHydrationWarning
           style={{ fontFamily: "var(--font-wordmark)" }}
           className="flex items-center justify-center gap-2.5 text-3xl font-medium tracking-[-0.015em] text-[var(--color-text)] sm:gap-3.5 sm:text-5xl"
-          aria-label={`${greeting}${name ? `, ${name}` : ""}`}
+          aria-label={`${greeting}`}
         >
-          <Asterisk
-            aria-hidden
-            strokeWidth={2}
-            className="h-7 w-7 shrink-0 text-[var(--color-accent)] sm:h-9 sm:w-9"
-          />
           <span suppressHydrationWarning className="text-[var(--color-text)]">
             {greeting}
-            {name ? `, ${name}` : ""}
           </span>
         </h1>
         <p

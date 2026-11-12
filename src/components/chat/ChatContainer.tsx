@@ -86,6 +86,7 @@ export function ChatContainer({
         role: (m.role === "tool" ? "assistant" : m.role) as "user" | "assistant" | "system",
         content: m.content,
         sources: (m.sources as SearchSource[] | null) || undefined,
+        toolCalls: m.toolCalls,
         createdAt: new Date(m.createdAt),
       })),
     [activeConvData]
@@ -104,6 +105,14 @@ export function ChatContainer({
     initialMessages: initialAgentMessages,
     onConversationCreated: handleConversationCreated,
   });
+
+  // Revalidate conversation data after streaming completes to sync persisted toolCalls & sources
+  useEffect(() => {
+    if (!isStreaming && activeId) {
+      void queryClient.invalidateQueries({ queryKey: ["conversation", activeId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    }
+  }, [isStreaming, activeId, queryClient]);
 
   // Sync error to Toast
   useEffect(() => {
@@ -202,12 +211,7 @@ export function ChatContainer({
             </button>
 
             {isEmpty ? (
-              <div className="flex items-center md:hidden">
-                <Wordmark className="text-base font-medium">
-                  <LogoMark className="h-4 w-4" />
-                  lyra
-                </Wordmark>
-              </div>
+              <div className="flex items-center md:hidden"/>
             ) : isRenamingHeader ? (
               <form
                 onSubmit={async (e) => {

@@ -81,6 +81,8 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     const conversationTitle = conv.title;
     const searchEnabled = input.search ?? conv.searchDefault;
 
+    const ctx = await assemblePromptContext(user.id, conversationId, searchEnabled);
+
     await createMessage({
       conversationId,
       role: "user",
@@ -88,13 +90,13 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     });
     await incrementMsgCount(conversationId);
 
-    const ctx = await assemblePromptContext(user.id, conversationId, searchEnabled);
     const messages = [
       ...ctx.window,
       { role: "user" as const, content: input.text },
     ];
 
     let resolvedSources: SearchSource[] = [];
+    let executedQuery: string | undefined;
     let streamWriter: Parameters<
       Parameters<typeof createUIMessageStream>[0]["execute"]
     >[0]["writer"] | null = null;
@@ -116,6 +118,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         "Search the live web for current information. Use for anything time-sensitive, factual, or outside your training data.",
       inputSchema: searchParametersSchema,
       execute: async (args: SearchParameters) => {
+        executedQuery = args.query || args.q || args.keywords || args.search_query;
         return executeWebSearch(args, (sources) => {
           emitSources(sources);
         });
@@ -161,6 +164,11 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             conversationId,
             role: "assistant",
             content: fullText,
+            toolCalls: executedQuery
+              ? [{ toolName: "web_search", query: executedQuery }]
+              : resolvedSources.length > 0
+              ? [{ toolName: "web_search" }]
+              : undefined,
             sources: resolvedSources.length > 0 ? resolvedSources : undefined,
             model: activeModelName,
             tokensIn: usage?.inputTokens,
