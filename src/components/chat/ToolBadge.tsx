@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Globe } from "lucide-react";
+import { CircleNotchIcon, GlobeIcon } from "@phosphor-icons/react";
 
 export interface ToolBadgeProps {
   query?: string;
@@ -12,12 +12,12 @@ export function ToolBadge({ query, isComplete = false }: ToolBadgeProps) {
   return (
     <div className="mb-2 flex items-center gap-1.5 text-xs text-[var(--text-faint)] select-none">
       {isComplete ? (
-        <Globe
+        <GlobeIcon
           aria-hidden
           className="h-3.5 w-3.5 shrink-0 text-[var(--text-faint)]"
         />
       ) : (
-        <Loader2
+        <CircleNotchIcon
           aria-hidden
           className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--text-faint)]"
         />

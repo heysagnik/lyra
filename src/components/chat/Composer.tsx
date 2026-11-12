@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Square, ChevronDown, Check, Plus, X } from "lucide-react";
+import { ArrowUpIcon, SquareIcon, CaretDownIcon, CheckIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
 import { REGISTERED_MODELS } from "@/lib/llm/models";
 
 export interface ComposerProps {
@@ -255,7 +255,7 @@ export function Composer({
                       }
                       className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-muted)] text-[var(--color-text-tertiary)] transition-[background-color,color] duration-[var(--duration-fast)] hover:bg-[var(--color-accent)]/15 hover:text-[var(--color-text)]"
                     >
-                      <X aria-hidden className="h-3 w-3" />
+                      <XIcon aria-hidden className="h-3 w-3" />
                     </button>
                   </div>
 
@@ -317,7 +317,7 @@ export function Composer({
             onClick={() => fileInputRef.current?.click()}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-[color,border-color,transform] duration-[var(--duration-normal)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)] active:scale-[0.96]"
           >
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
           </button>
 
           <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export function Composer({
                 <span className="text-[9px] font-semibold text-[var(--color-text-tertiary)] border border-[var(--color-border)]/70 px-1 py-0.5 rounded tracking-wide">
                   {EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium"}
                 </span>
-                <ChevronDown
+                <CaretDownIcon
                   aria-hidden
                   className={`h-3.5 w-3.5 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-normal)] ${
                     pickerOpen ? "rotate-180" : ""
@@ -387,10 +387,9 @@ export function Composer({
                         >
                           <span className="truncate">{m.label}</span>
                           {selected && (
-                            <Check
+                            <CheckIcon
                               aria-hidden
                               className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]"
-                              strokeWidth={2.5}
                             />
                           )}
                         </button>
@@ -438,12 +437,12 @@ export function Composer({
                           handleEffortChange(next.id);
                         }
                       }}
-                      className="relative flex h-9 w-full cursor-pointer select-none items-center rounded-xl bg-[#1e1e20] p-1 border border-white/5 transition-[border-color,transform] duration-150 ease-out hover:border-white/10 active:scale-[0.99] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus)]"
+                      className="relative flex h-9 w-full cursor-pointer select-none items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[var(--color-border)] transition-[border-color,transform] duration-150 ease-out hover:border-[var(--color-border-strong)] active:scale-[0.99] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus)]"
                     >
                       {/* Filled segment from the left edge up to the knob */}
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute bottom-1 left-1 top-1 rounded-lg bg-white/[0.13] transition-[width] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+                        className="pointer-events-none absolute bottom-1 left-1 top-1 rounded-lg bg-[var(--color-surface-3)] transition-[width] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
                         style={{
                           width:
                             effort === "low"
@@ -455,14 +454,14 @@ export function Composer({
                       />
 
                       {/* Discrete stop notch tick marks */}
-                      <span className="pointer-events-none absolute left-[20px] top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
-                      <span className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
-                      <span className="pointer-events-none absolute right-[20px] top-1/2 h-2.5 w-[2px] translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+                      <span className="pointer-events-none absolute left-[20px] top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-text-tertiary)]/60" />
+                      <span className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-text-tertiary)]/60" />
+                      <span className="pointer-events-none absolute right-[20px] top-1/2 h-2.5 w-[2px] translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-text-tertiary)]/60" />
 
                       {/* Active knob — darker pill riding the fill edge */}
                       <div
                         aria-hidden
-                        className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-lg border border-white/10 bg-[#1c1c1f] transition-[left] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.97]"
+                        className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-canvas)] transition-[left] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.97]"
                         style={{
                           left:
                             effort === "low"
@@ -471,7 +470,7 @@ export function Composer({
                               ? "calc(50% - 18px)"
                               : "calc(100% - 40px)",
                           boxShadow:
-                            "0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
+                            "0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)",
                         }}
                       />
 
@@ -504,7 +503,7 @@ export function Composer({
                 aria-label="Stop generating"
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
               >
-                <Square className="h-2.5 w-2.5 fill-current" />
+                <SquareIcon className="h-2.5 w-2.5 fill-current" />
               </button>
             ) : (
               <button
@@ -518,7 +517,7 @@ export function Composer({
                     : "cursor-not-allowed bg-[var(--color-surface-3)] text-[var(--color-text-tertiary)]"
                 }`}
               >
-                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+                <ArrowUpIcon className="h-4 w-4" />
               </button>
             )}
           </div>

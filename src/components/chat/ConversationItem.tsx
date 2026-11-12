@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Pencil, Trash2, Check, X } from "lucide-react";
+import { DotsThreeIcon, PencilIcon, TrashIcon, CheckIcon, XIcon } from "@phosphor-icons/react";
 import type { Conversation } from "@/types";
 
 export interface ConversationItemProps {
@@ -24,7 +24,25 @@ export function ConversationItem({
   const [titleInput, setTitleInput] = useState(conversation.title);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Close the menu on Escape or when focus leaves it
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMenu(false);
+    };
+    const handleFocusOut = (e: FocusEvent) => {
+      if (!menuRef.current?.contains(e.relatedTarget as Node)) setShowMenu(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    menuRef.current?.addEventListener("focusout", handleFocusOut);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      menuRef.current?.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [showMenu]);
 
   const handleSaveRename = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -66,7 +84,7 @@ export function ConversationItem({
           title="Save"
           aria-label="Save title"
         >
-          <Check className="h-3.5 w-3.5" />
+          <CheckIcon className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
@@ -78,7 +96,7 @@ export function ConversationItem({
           title="Cancel"
           aria-label="Cancel rename"
         >
-          <X className="h-3.5 w-3.5" />
+          <XIcon className="h-3.5 w-3.5" />
         </button>
       </form>
     );
@@ -147,9 +165,11 @@ export function ConversationItem({
             e.stopPropagation();
             setShowMenu(!showMenu);
           }}
-          className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-faint)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--panel-3)] hover:text-[var(--text)] group-hover:flex"
+          className={`hidden h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-faint)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--panel-3)] hover:text-[var(--text)] group-hover:flex ${
+            showMenu ? "bg-[var(--panel-3)] text-[var(--text)]" : ""
+          }`}
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <DotsThreeIcon className="h-4 w-4" weight={showMenu ? "fill" : "regular"} />
         </button>
       </div>
 
@@ -163,9 +183,10 @@ export function ConversationItem({
             aria-hidden
           />
           <div
+            ref={menuRef}
             role="menu"
             aria-label={`Options for ${conversation.title}`}
-            className="popover-in absolute right-2 top-full z-50 mt-1 w-32 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-0.5 shadow-md"
+            className="popover-in absolute right-2 top-full z-50 mt-1.5 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18),0_2px_6px_rgba(0,0,0,0.1)]"
           >
             <button
               role="menuitem"
@@ -174,9 +195,9 @@ export function ConversationItem({
                 setShowMenu(false);
                 setIsEditing(true);
               }}
-              className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
+              className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:bg-[var(--color-hover)] active:scale-[0.98]"
             >
-              <Pencil aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
+              <PencilIcon aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
               Rename
             </button>
             <button
@@ -186,9 +207,9 @@ export function ConversationItem({
                 setShowMenu(false);
                 setShowConfirmDelete(true);
               }}
-              className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
+              className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:bg-[var(--color-danger-muted)] active:scale-[0.98]"
             >
-              <Trash2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              <TrashIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
               Delete
             </button>
           </div>

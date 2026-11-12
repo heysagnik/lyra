@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDownIcon } from "@phosphor-icons/react";
 import { MessageBubble } from "./MessageBubble";
 import { EmptyState } from "./EmptyState";
 import type { AgentChatMessage } from "@/lib/api/use-agent-chat";
@@ -88,7 +88,7 @@ export function MessageList({
           aria-label="Jump to the latest message"
           className="rise-in absolute bottom-36 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel-2)] py-1.5 pl-2.5 pr-3 text-xs font-medium text-[var(--text)] shadow-[var(--shadow-dialog)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.96]"
         >
-          <ArrowDown className="h-3.5 w-3.5 text-[var(--accent)]" />
+          <ArrowDownIcon className="h-3.5 w-3.5 text-[var(--accent)]" />
           <span>Jump to latest</span>
         </button>
       )}

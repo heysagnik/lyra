@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, RefreshCw } from "lucide-react";
+import { CheckIcon, CopyIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { Markdown } from "./Markdown";
 import { SourcesRow } from "./SourcesRow";
 import { ToolBadge } from "./ToolBadge";
@@ -125,14 +125,14 @@ export function MessageBubble({
           <button
             type="button"
             onClick={handleCopy}
-            aria-label="Copy message"
-            title="Copy"
+            aria-label="CopyIcon message"
+            title="CopyIcon"
             className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
           >
             {copied ? (
-              <Check aria-hidden className="h-3.5 w-3.5 text-[var(--color-success)]" />
+              <CheckIcon aria-hidden className="h-3.5 w-3.5 text-[var(--color-success)]" />
             ) : (
-              <Copy aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <CopyIcon aria-hidden className="h-3.5 w-3.5" />
             )}
           </button>
           {onRegenerate && (
@@ -143,7 +143,7 @@ export function MessageBubble({
               title="Regenerate"
               className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
             >
-              <RefreshCw aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <ArrowsClockwiseIcon aria-hidden className="h-3.5 w-3.5" />
             </button>
           )}
           {createdAt && (

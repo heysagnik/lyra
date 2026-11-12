@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock } from "lucide-react";
+import { EnvelopeSimpleIcon, LockIcon } from "@phosphor-icons/react";
 import { signIn, useSession } from "@/lib/auth/client";
 import { AuthShell } from "@/components/auth/AuthShell";
 
@@ -69,7 +69,7 @@ export default function SignInPage() {
             Email
           </label>
           <div className="relative mt-1.5">
-            <Mail
+            <EnvelopeSimpleIcon
               aria-hidden
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]"
             />
@@ -94,7 +94,7 @@ export default function SignInPage() {
             Password
           </label>
           <div className="relative mt-1.5">
-            <Lock
+            <LockIcon
               aria-hidden
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]"
             />

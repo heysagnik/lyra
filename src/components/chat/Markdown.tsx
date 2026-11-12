@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize from "rehype-sanitize";
-import { Check, Copy, ExternalLink, Globe } from "lucide-react";
+import { CheckIcon, CopyIcon, ArrowSquareOutIcon, GlobeIcon } from "@phosphor-icons/react";
 import type { SearchSource } from "@/types";
 
 interface CodeBlockProps {
@@ -84,7 +84,7 @@ function CitationHoverCard({
             className="mb-1 line-clamp-2 block text-xs font-medium text-[var(--color-text)] transition-colors hover:text-[var(--color-accent)]"
           >
             {source.title || hostname}
-            <ExternalLink className="ml-1 inline h-2.5 w-2.5 opacity-50" />
+            <ArrowSquareOutIcon className="ml-1 inline h-2.5 w-2.5 opacity-50" />
           </a>
 
           {/* Snippet */}
@@ -148,18 +148,18 @@ function CodeBlock({ className, children }: CodeBlockProps) {
         <span className="lowercase tracking-wide">{language || "text"}</span>
         <button
           onClick={handleCopy}
-          aria-label="Copy code"
+          aria-label="CopyIcon code"
           className="flex items-center gap-1 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--accent)]"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-[var(--accent)]" />
+              <CheckIcon className="h-3.5 w-3.5 text-[var(--accent)]" />
               <span className="text-[var(--accent)]">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" />
-              <span>Copy</span>
+              <CopyIcon className="h-3.5 w-3.5" />
+              <span>CopyIcon</span>
             </>
           )}
         </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ClockIcon, LightningIcon, ChartLineUpIcon } from "@phosphor-icons/react";
 import type { UserUsageStats } from "@/lib/db/queries/usage";
 
 interface UsageApiResponse {
@@ -29,8 +30,7 @@ export default function UsageSettingsPage() {
   const totalTokens = (stats?.today.tokensIn ?? 0) + (stats?.today.tokensOut ?? 0);
 
   return (
-    <div className="max-w-xl space-y-8">
-      {/* Header */}
+    <div className="space-y-8">
       <header>
         <h1 className="text-lg font-semibold tracking-tight text-[var(--color-text)]">
           Usage
@@ -40,51 +40,84 @@ export default function UsageSettingsPage() {
         </p>
       </header>
 
-      {/* Main Usage Card */}
-      <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-6 shadow-sm">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium text-[var(--color-text)]">
-            Daily Messages
-          </span>
-          <span className="text-sm font-medium tabular-nums text-[var(--color-text-secondary)]">
-            {isLoading ? "…" : `${turnsUsed} / ${dailyLimit}`}
-          </span>
-        </div>
+      <section>
+        <h2 className="mb-2 px-1 text-sm text-[var(--color-text-tertiary)]">
+          Daily messages
+        </h2>
+        <div className="overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface-1)]">
+          <div className="flex min-h-12 items-center justify-between gap-4 px-5 py-3">
+            <span className="text-sm text-[var(--color-text)]">
+              Messages used
+            </span>
+            <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
+              {isLoading ? "…" : `${turnsUsed} of ${dailyLimit}`}
+            </span>
+          </div>
 
-        {/* Progress Bar */}
-        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-2)]">
-          <div
-            className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
-            style={{ width: `${Math.max(isLoading ? 0 : 2, Math.min(100, percentUsed))}%` }}
-          />
-        </div>
-
-        <div className="mt-4 flex items-center justify-between text-xs text-[var(--color-text-tertiary)]">
-          <span>
-            {isLoading ? "Loading…" : `${remaining} messages remaining today`}
-          </span>
-          <span>Resets at 00:00 UTC</span>
+          <div className="px-5 pb-3">
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(percentUsed)}
+              aria-label="Daily messages used"
+              className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]"
+            >
+              <div
+                className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.min(100, Math.max(percentUsed, 2))}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
+              {isLoading ? "…" : `${remaining} messages remaining today`}
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Quick Details */}
-      <section className="grid grid-cols-2 gap-4">
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4">
-          <span className="text-xs text-[var(--color-text-tertiary)]">
-            Rate limit
-          </span>
-          <p className="mt-1 text-base font-semibold text-[var(--color-text)]">
-            20 req / min
-          </p>
-        </div>
+      <section>
+        <h2 className="mb-2 px-1 text-sm text-[var(--color-text-tertiary)]">
+          Details
+        </h2>
+        <div className="overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface-1)]">
+          <div className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-3">
+            <span className="flex min-w-0 items-center gap-3 text-sm text-[var(--color-text)]">
+              <LightningIcon
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
+              />
+              Rate limit
+            </span>
+            <span className="text-sm text-[var(--color-text-tertiary)]">
+              20 req / min
+            </span>
+          </div>
 
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4">
-          <span className="text-xs text-[var(--color-text-tertiary)]">
-            Tokens today
-          </span>
-          <p className="mt-1 text-base font-semibold tabular-nums text-[var(--color-text)]">
-            {isLoading ? "…" : totalTokens.toLocaleString()}
-          </p>
+          <div className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-3">
+            <span className="flex min-w-0 items-center gap-3 text-sm text-[var(--color-text)]">
+              <ChartLineUpIcon
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
+              />
+              Tokens today
+            </span>
+            <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
+              {isLoading ? "…" : totalTokens.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex min-h-12 items-center justify-between gap-4 px-5 py-3">
+            <span className="flex min-w-0 items-center gap-3 text-sm text-[var(--color-text)]">
+              <ClockIcon
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
+              />
+              Usage resets
+            </span>
+            <span className="text-sm text-[var(--color-text-tertiary)]">
+              00:00 UTC
+            </span>
+          </div>
         </div>
       </section>
     </div>

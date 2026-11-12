@@ -37,28 +37,35 @@ export function EmptyState() {
         aria-hidden
         className="fade-in pointer-events-none absolute inset-0 select-none overflow-hidden"
       >
+        {/* Core aura — a single soft accent wash centered behind the greeting */}
         <div
           className="aura-breathe absolute inset-0"
           style={{
-            background: [
-              "radial-gradient(ellipse 58% 44% at 50% 45%, color-mix(in srgb, var(--color-accent) 22%, var(--color-aura)) 0%, color-mix(in srgb, var(--color-aura) 55%, transparent) 42%, transparent 74%)",
-              "radial-gradient(ellipse 44% 34% at 36% 38%, color-mix(in srgb, var(--color-update) 18%, transparent) 0%, transparent 68%)",
-              "radial-gradient(ellipse 46% 36% at 64% 46%, color-mix(in srgb, #9333ea 14%, color-mix(in srgb, var(--color-accent) 18%, transparent)) 0%, transparent 68%)",
-              "radial-gradient(ellipse 36% 28% at 52% 35%, color-mix(in srgb, #f472b6 9%, transparent) 0%, transparent 70%)",
-              "radial-gradient(ellipse 85% 65% at 50% 48%, color-mix(in srgb, var(--color-aura) 70%, transparent) 0%, transparent 82%)",
-            ].join(", "),
+            background:
+              "radial-gradient(ellipse 52% 42% at 50% 42%, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, color-mix(in srgb, var(--color-accent) 10%, transparent) 45%, transparent 75%)",
             maskImage:
-              "radial-gradient(ellipse 88% 76% at 50% 46%, black 35%, transparent 95%)",
+              "radial-gradient(ellipse 85% 75% at 50% 46%, black 30%, transparent 92%)",
             WebkitMaskImage:
-              "radial-gradient(ellipse 88% 76% at 50% 46%, black 35%, transparent 95%)",
+              "radial-gradient(ellipse 85% 75% at 50% 46%, black 30%, transparent 92%)",
           }}
         />
 
+        {/* Secondary glow — off-center, subtle, breathing out of phase */}
+        <div
+          className="aura-breathe absolute inset-0"
+          style={{
+            animationDelay: "-7s",
+            background:
+              "radial-gradient(ellipse 40% 32% at 64% 40%, color-mix(in srgb, var(--color-accent) 9%, transparent) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* Soft vertical falloff — grounds the gradient into the canvas */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 5%, transparent) 0%, transparent 45%)",
+              "linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--color-accent) 6%, transparent) 55%, transparent 85%)",
           }}
         />
       </div>

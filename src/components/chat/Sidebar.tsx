@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Plus,
-  X,
-  Search,
-  Settings,
-} from "lucide-react";
+  PlusIcon,
+  XIcon,
+  GearIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
 import { ConversationItem } from "./ConversationItem";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Wordmark } from "@/components/brand/Wordmark";
@@ -102,7 +102,7 @@ export function Sidebar({
             aria-label="Close sidebar"
             className="rounded-[var(--radius-md)] p-1 text-[var(--text-faint)] transition-[color,transform] duration-[var(--duration-fast)] hover:text-[var(--text)] active:scale-[0.96] md:hidden"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
           <span aria-hidden className="hidden md:block md:w-1" />
         </div>
@@ -122,14 +122,14 @@ export function Sidebar({
             }}
             className="mt-1 flex w-full items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--panel-2)] px-3 py-2 text-sm font-medium text-[var(--text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.96]"
           >
-            <Plus className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" />
             New
           </button>
 
           {/* Search */}
           {showSearch ? (
             <div className="relative mt-1">
-              <Search
+              <MagnifyingGlassIcon
                 aria-hidden
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-faint)]"
               />
@@ -151,7 +151,7 @@ export function Sidebar({
               onClick={() => setShowSearch(true)}
               className="mt-0.5 flex w-full items-center gap-3 rounded-[var(--radius-lg)] px-3 py-2 text-sm text-[var(--text-muted)] transition-colors duration-[var(--duration-normal)] hover:bg-[var(--panel-2)] hover:text-[var(--text)]"
             >
-              <Search className="h-4 w-4" />
+              <MagnifyingGlassIcon className="h-4 w-4" />
               Search
             </button>
           )}
@@ -217,7 +217,7 @@ export function Sidebar({
               title="Settings"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-lg)] text-[var(--text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--panel-2)] hover:text-[var(--text)] active:scale-[0.96]"
             >
-              <Settings className="h-4 w-4" />
+              <GearIcon className="h-4 w-4" />
             </Link>
           </div>
         </div>

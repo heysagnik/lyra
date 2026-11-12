@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, LogOut, Mail } from "lucide-react";
+import { CaretRightIcon, SignOutIcon, EnvelopeSimpleIcon } from "@phosphor-icons/react";
 import { signOut, useSession } from "@/lib/auth/client";
 
 interface SessionRow {
@@ -167,9 +167,8 @@ export default function AccountSettingsPage() {
         <div className="overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface-1)]">
           <div className="flex min-h-12 items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-3">
             <span className="flex min-w-0 items-center gap-3 text-sm text-[var(--color-text)]">
-              <Mail
+              <EnvelopeSimpleIcon
                 aria-hidden
-                strokeWidth={1.75}
                 className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
               />
               Email
@@ -209,7 +208,7 @@ export default function AccountSettingsPage() {
             <span className="text-sm text-[var(--color-text)]">Manage devices</span>
             <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-tertiary)]">
               {deviceLabel}
-              <ChevronRight
+              <CaretRightIcon
                 aria-hidden
                 className={`h-4 w-4 transition-transform duration-[var(--duration-normal)] ${
                   devicesOpen ? "rotate-90" : ""
@@ -256,7 +255,7 @@ export default function AccountSettingsPage() {
         onClick={handleSignOut}
         className="flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-xl)] bg-[var(--color-surface-2)] text-sm font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
       >
-        <LogOut aria-hidden className="h-4 w-4" />
+        <SignOutIcon aria-hidden className="h-4 w-4" />
         Log out
       </button>
 

@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import type { SearchSource } from "@/types";
 
 export interface SourcesRowProps {
@@ -44,7 +44,7 @@ export function SourcesRow({ sources }: SourcesRowProps) {
                 <span className="font-coordinate text-[10px] text-[var(--text-faint)]">
                   {hostname}
                 </span>
-                <ExternalLink aria-hidden className="h-3 w-3 opacity-50" />
+                <ArrowSquareOutIcon aria-hidden className="h-3 w-3 opacity-50" />
               </a>
             </li>
           );

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Monitor, MoonStar } from "lucide-react";
+import { SunIcon, MonitorIcon, MoonStarsIcon, CheckIcon } from "@phosphor-icons/react";
 
 const THEMES = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "system", label: "System", icon: Monitor },
-  { value: "dark", label: "Dark", icon: MoonStar },
+  { value: "light", label: "Light", icon: SunIcon },
+  { value: "system", label: "System", icon: MonitorIcon },
+  { value: "dark", label: "Dark", icon: MoonStarsIcon },
 ] as const;
 
 type ThemeValue = (typeof THEMES)[number]["value"];
@@ -20,27 +20,37 @@ function ThemePreview({ mode }: { mode: ThemeValue }) {
       : mode === "dark"
         ? "#141414"
         : "linear-gradient(90deg, #f6f6f6 50%, #141414 50%)";
-  const surface = mode === "light" ? "#ffffff" : mode === "dark" ? "#1b1b1b" : "#1b1b1b";
+  const surface = mode === "light" ? "#ffffff" : mode === "dark" ? "#1c1c1c" : "#e8e8e8";
+  const text = mode === "light" ? "#171717" : mode === "dark" ? "#ededed" : "#6b6b6b";
+
   return (
     <div
       aria-hidden
-      className="flex h-24 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)]"
+      className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-1.5"
       style={{ background: canvas }}
     >
+      {/* Mini app window */}
       <div
-        className="flex h-16 w-40 flex-col items-center justify-center gap-1.5 rounded-[var(--radius-sm)]"
-        style={{ background: surface }}
+        className="flex h-16 flex-col justify-between rounded-[var(--radius-sm)] px-2 py-2"
+        style={{ background: surface, color: text }}
       >
-        <span
-          className="text-[10px] font-bold tracking-tight"
-          style={{ color: mode === "light" ? "#141414" : "#efefef" }}
-        >
-          lyra
-        </span>
         <div
-          className="h-4 w-24 rounded-full"
-          style={{ background: mode === "light" ? "#ececec" : "#282828" }}
+          className="h-1.5 w-1/2 rounded-full"
+          style={{ background: text, opacity: 0.5 }}
         />
+        <div
+          className="h-4 w-3/4 rounded-[var(--radius-sm)]"
+          style={{ background: text, opacity: 0.1 }}
+        />
+        <div
+          className="flex h-4 items-center rounded-full px-1.5"
+          style={{ background: text, opacity: 0.06 }}
+        >
+          <div
+            className="h-1 w-1/3 rounded-full"
+            style={{ background: text, opacity: 0.3 }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -96,7 +106,7 @@ export default function AppearanceSettingsPage() {
                   type="button"
                   onClick={() => applyTheme(value)}
                   aria-pressed={selected}
-                  className={`rounded-[var(--radius-lg)] border p-1.5 text-left transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)] ${
+                  className={`relative rounded-[var(--radius-lg)] border p-1.5 text-left transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] active:scale-[0.98] ${
                     selected
                       ? "border-[var(--color-update)] shadow-[0_0_0_1px_var(--color-update)]"
                       : "border-transparent hover:border-[var(--color-border-strong)]"
@@ -107,6 +117,11 @@ export default function AppearanceSettingsPage() {
                     <Icon aria-hidden className="h-3.5 w-3.5" />
                     {label}
                   </span>
+                  {selected && (
+                    <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-update)] text-[var(--color-on-accent)]">
+                      <CheckIcon aria-hidden className="h-2.5 w-2.5" weight="bold" />
+                    </span>
+                  )}
                 </button>
               );
             })}

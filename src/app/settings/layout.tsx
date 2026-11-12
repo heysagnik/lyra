@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { getAuth } from "@/lib/auth";
 import { SettingsNav } from "@/components/settings/SettingsNav";
+import { BackLink } from "@/components/settings/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +22,7 @@ export default async function SettingsLayout({
       {/* Mobile: back link + horizontally scrolling sections */}
       <header className="sticky top-0 z-[var(--z-sticky)] border-b border-[var(--color-border)] bg-[var(--color-canvas)]/95 backdrop-blur-sm md:hidden">
         <div className="flex h-12 items-center px-2">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
-            Back
-          </Link>
+          <BackLink />
         </div>
         <div className="overflow-x-auto px-2 pb-2">
           <SettingsNav />
@@ -38,13 +31,9 @@ export default async function SettingsLayout({
 
       {/* Desktop: fixed settings rail */}
       <aside className="sticky top-0 hidden h-screen w-[300px] shrink-0 flex-col border-r border-[var(--color-border)] px-3 py-4 md:flex">
-        <Link
-          href="/"
-          className="mb-5 inline-flex w-fit items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Back
-        </Link>
+        <div className="mb-5">
+          <BackLink />
+        </div>
         <SettingsNav />
       </aside>
 

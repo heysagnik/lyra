@@ -3,14 +3,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { PanelLeft, ChevronDown, Share, Check, Pencil, Trash2 } from "lucide-react";
+import { ListIcon, CaretDownIcon, ShareNetworkIcon, CheckIcon, PencilIcon, TrashIcon, SidebarIcon } from "@phosphor-icons/react";
 import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
 import { Composer } from "./Composer";
 import { Toast } from "./Toast";
-import { LogoMark } from "@/components/brand/LogoMark";
-import { Wordmark } from "@/components/brand/Wordmark";
 import { useAgentChat } from "@/lib/api/use-agent-chat";
 import {
   fetchConversations,
@@ -53,13 +51,11 @@ export function ChatContainer({
   const [shared, setShared] = useState(false);
   const router = useRouter();
 
-  // 1. Fetch conversations with TanStack Query
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["conversations"],
     queryFn: () => fetchConversations(),
   });
 
-  // 2. Fetch active conversation details & messages
   const { data: activeConvData } = useQuery({
     queryKey: ["conversation", activeId],
     queryFn: () => (activeId ? fetchConversation(activeId) : null),
@@ -68,12 +64,9 @@ export function ChatContainer({
 
   const activeConv = activeConvData?.conversation;
 
-  // 3. AI SDK useAgentChat wrapper
   const handleConversationCreated = useCallback(
     (newId: string) => {
       setActiveId(newId);
-      // Reflect the new conversation in the URL without a client navigation,
-      // which would drop the in-flight stream
       window.history.replaceState(null, "", `/chat/${newId}`);
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
@@ -208,9 +201,7 @@ export function ChatContainer({
 
       {/* Main column */}
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Persistent top header */}
         <header className="relative z-30 flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--bg)] px-3 sm:h-12 sm:px-4">
-          {/* Left section: Sidebar toggle & Title / Brand */}
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={() => setIsSidebarOpen((v) => !v)}
@@ -218,7 +209,7 @@ export function ChatContainer({
               aria-expanded={isSidebarOpen}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.96]"
             >
-              <PanelLeft className="h-[18px] w-[18px]" />
+              <SidebarIcon className="h-[18px] w-[18px]" />
             </button>
 
             {isEmpty ? (
@@ -259,7 +250,7 @@ export function ChatContainer({
                 <h1 className="truncate max-w-[170px] text-sm font-medium text-[var(--color-text)] sm:max-w-md sm:text-[15px]">
                   {activeConv?.title || "New chat"}
                 </h1>
-                <ChevronDown
+                <CaretDownIcon
                   aria-hidden
                   className={`h-4 w-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-fast)] ${
                     headerMenuOpen ? "rotate-180" : ""
@@ -285,20 +276,20 @@ export function ChatContainer({
                     // ignore
                   }
                 }}
-                aria-label="Share chat"
+                aria-label="ShareNetwork chat"
                 title="Copy a public read-only link to this chat"
                 className="flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-xs font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96] disabled:opacity-50 sm:px-3 sm:text-sm"
                 disabled={!activeId}
               >
                 {shared ? (
                   <>
-                    <Check aria-hidden className="h-4 w-4 text-[var(--color-success)]" />
+                    <CheckIcon aria-hidden className="h-4 w-4 text-[var(--color-success)]" />
                     <span className="hidden sm:inline">Copied</span>
                   </>
                 ) : (
                   <>
-                    <Share aria-hidden className="h-4 w-4" strokeWidth={2} />
-                    <span className="hidden sm:inline">Share</span>
+                    <ShareNetworkIcon aria-hidden className="h-4 w-4" />
+                    <span className="hidden sm:inline">ShareNetwork</span>
                   </>
                 )}
               </button>
@@ -327,7 +318,7 @@ export function ChatContainer({
                   }}
                   className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
                 >
-                  <Pencil aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
+                  <PencilIcon aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
                   Rename
                 </button>
                 <button
@@ -342,7 +333,7 @@ export function ChatContainer({
                   }}
                   className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
                 >
-                  <Trash2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  <TrashIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
                   Delete
                 </button>
               </div>

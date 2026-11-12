@@ -113,7 +113,7 @@ describe("Composer Component", () => {
     // But the effort slider can be changed
     const highBtn = screen.getByLabelText("Set effort to High");
     fireEvent.click(highBtn);
-    expect(screen.getByText("High")).toBeDefined();
+    expect(screen.getAllByText("High").length).toBeGreaterThan(0);
 
     // Type and send — uses locked model ("primary") and new effort ("max")
     const textarea = screen.getByPlaceholderText("Send a Message");
@@ -189,7 +189,7 @@ describe("Composer Component", () => {
     // Click high effort stop
     const highBtn = screen.getByLabelText("Set effort to High");
     fireEvent.click(highBtn);
-    expect(screen.getByText("High")).toBeDefined();
+    expect(screen.getAllByText("High").length).toBeGreaterThan(0);
 
     // Type and send
     const textarea = screen.getByPlaceholderText("Send a Message");

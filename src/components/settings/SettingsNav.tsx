@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, Gauge, Sun, UserRound, type LucideIcon } from "lucide-react";
+import {SunIcon, UserIcon, Icon, SpeedometerIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: Icon;
 }
 
 interface NavGroup {
@@ -21,28 +21,23 @@ const GROUPS: NavGroup[] = [
       {
         href: "/settings/account",
         label: "Account & Security",
-        icon: UserRound,
+        icon: UserIcon,
       },
       {
         href: "/settings/appearance",
         label: "Appearance",
-        icon: Sun,
+        icon: SunIcon,
       },
       {
         href: "/settings/usage",
         label: "Usage & Limits",
-        icon: Gauge,
+        icon: SpeedometerIcon,
       },
-    ],
-  },
-  {
-    label: "Personalization",
-    items: [
       {
         href: "/settings/personalization",
-        label: "Chat memory",
-        icon: Brain,
-      },
+        label: "Personalization",
+        icon: SlidersHorizontalIcon,
+      }
     ],
   },
 ];
@@ -78,7 +73,6 @@ export function SettingsNav() {
                   >
                     <Icon
                       aria-hidden
-                      strokeWidth={1.75}
                       className={`h-4 w-4 shrink-0 ${
                         active
                           ? "text-[var(--color-text)]"
