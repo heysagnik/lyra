@@ -46,11 +46,6 @@ export function useAgentChat({
   const [currentSources, setCurrentSources] = useState<SearchSource[]>([]);
   const [sourcesByMsgId, setSourcesByMsgId] = useState<Record<string, SearchSource[]>>({});
 
-  useEffect(() => {
-    setActiveConversationId(conversationId);
-    setCurrentSources([]);
-  }, [conversationId]);
-
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -95,6 +90,15 @@ export function useAgentChat({
       }
     },
   });
+
+  useEffect(() => {
+    setActiveConversationId(conversationId);
+    setCurrentSources([]);
+    if (!conversationId) {
+      setMessages([]);
+      setSourcesByMsgId({});
+    }
+  }, [conversationId, setMessages]);
 
   // Sync initial messages when conversation changes. Convert the persisted
   // { content } shape into UIMessage { parts } so mappedMessages can derive

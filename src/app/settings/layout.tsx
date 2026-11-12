@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getAuth } from "@/lib/auth";
 import { SettingsNav } from "@/components/settings/SettingsNav";
-import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +50,7 @@ export default async function SettingsLayout({
 
       <div className="min-w-0 flex-1">
         <main className="mx-auto w-full max-w-[960px] px-5 py-10 sm:px-8 md:py-16">
-          <QueryProvider>{children}</QueryProvider>
+          {children}
         </main>
       </div>
     </div>

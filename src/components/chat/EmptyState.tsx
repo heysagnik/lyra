@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "@/lib/auth/client";
 
 
 function getGreeting(date: Date): string {
@@ -19,8 +20,10 @@ function getSubtitle(date: Date): string {
 }
 
 export function EmptyState() {
+  const { data: session } = useSession();
   const [greeting, setGreeting] = useState(() => getGreeting(new Date()));
   const [subtitle, setSubtitle] = useState(() => getSubtitle(new Date()));
+  const userName = session?.user?.name ? `, ${session.user.name}` : "";
 
   useEffect(() => {
     document.title = "lyra — chat agent";
@@ -68,7 +71,7 @@ export function EmptyState() {
           aria-label={`${greeting}`}
         >
           <span suppressHydrationWarning className="text-[var(--color-text)]">
-            {greeting}
+            {greeting}{userName}
           </span>
         </h1>
         <p

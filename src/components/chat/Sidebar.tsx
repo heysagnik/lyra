@@ -18,6 +18,8 @@ import type { Conversation } from "@/types";
 export interface SidebarProps {
   conversations: Conversation[];
   activeConversationId?: string;
+  onSelectConversation?: (id: string) => void;
+  onNewChat?: () => void;
   onRenameConversation: (id: string, newTitle: string) => Promise<void>;
   onDeleteConversation: (id: string) => Promise<void>;
   isOpenMobile: boolean;
@@ -28,6 +30,8 @@ export interface SidebarProps {
 export function Sidebar({
   conversations,
   activeConversationId,
+  onSelectConversation,
+  onNewChat,
   onRenameConversation,
   onDeleteConversation,
   isOpenMobile,
@@ -46,7 +50,11 @@ export function Sidebar({
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        router.push("/");
+        if (onNewChat) {
+          onNewChat();
+        } else {
+          router.push("/new");
+        }
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === "Comma") {
         e.preventDefault();
@@ -55,7 +63,7 @@ export function Sidebar({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [router]);
+  }, [router, onNewChat]);
 
   const visible = filter
     ? conversations.filter((c) =>
@@ -102,7 +110,16 @@ export function Sidebar({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
           {/* New */}
           <button
-            onClick={() => router.push("/")}
+            onClick={() => {
+              if (onNewChat) {
+                onNewChat();
+              } else {
+                router.push("/new");
+              }
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                onCloseMobile();
+              }
+            }}
             className="mt-1 flex w-full items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--panel-2)] px-3 py-2 text-sm font-medium text-[var(--text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--panel-3)] active:scale-[0.96]"
           >
             <Plus className="h-4 w-4" />
@@ -153,6 +170,16 @@ export function Sidebar({
                     key={c.id}
                     conversation={c}
                     isActive={c.id === activeConversationId}
+                    onSelect={(id) => {
+                      if (onSelectConversation) {
+                        onSelectConversation(id);
+                      } else {
+                        router.push(`/chat/${id}`);
+                      }
+                      if (typeof window !== "undefined" && window.innerWidth < 768) {
+                        onCloseMobile();
+                      }
+                    }}
                     onRename={onRenameConversation}
                     onDelete={onDeleteConversation}
                   />

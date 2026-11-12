@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
-import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +12,5 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
-  return (
-    <QueryProvider>
-      <ChatContainer />
-    </QueryProvider>
-  );
+  return <ChatContainer />;
 }

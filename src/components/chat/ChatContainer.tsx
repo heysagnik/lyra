@@ -184,6 +184,14 @@ export function ChatContainer({
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
+        onSelectConversation={(id) => {
+          setActiveId(id);
+          window.history.pushState(null, "", `/chat/${id}`);
+        }}
+        onNewChat={() => {
+          setActiveId(undefined);
+          window.history.pushState(null, "", "/new");
+        }}
         onRenameConversation={async (id, title) => {
           await renameMutation.mutateAsync({ id, title });
         }}

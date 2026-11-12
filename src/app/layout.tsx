@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeInitializer } from "@/components/providers/ThemeInitializer";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = localFont({
   src: "./fonts/InterVariable.woff2",
@@ -33,7 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full ${inter.variable}`} suppressHydrationWarning>
       <ThemeInitializer />
-      <body className="h-full min-h-full antialiased overscroll-none">{children}</body>
+      <body className="h-full min-h-full antialiased overscroll-none">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

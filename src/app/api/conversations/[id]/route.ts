@@ -24,12 +24,15 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const conversation = await getConversation(id, userResult.value.id);
+  const [conversation, messages] = await Promise.all([
+    getConversation(id, userResult.value.id),
+    listConversationMessages(id),
+  ]);
+
   if (!conversation) {
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
   }
 
-  const messages = await listConversationMessages(id);
   return NextResponse.json({
     conversation,
     messages,

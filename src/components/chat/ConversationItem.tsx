@@ -8,6 +8,7 @@ import type { Conversation } from "@/types";
 export interface ConversationItemProps {
   conversation: Conversation;
   isActive: boolean;
+  onSelect?: (id: string) => void;
   onRename: (id: string, newTitle: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
@@ -15,6 +16,7 @@ export interface ConversationItemProps {
 export function ConversationItem({
   conversation,
   isActive,
+  onSelect,
   onRename,
   onDelete,
 }: ConversationItemProps) {
@@ -109,11 +111,21 @@ export function ConversationItem({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => router.push(`/chat/${conversation.id}`)}
+        onClick={() => {
+          if (onSelect) {
+            onSelect(conversation.id);
+          } else {
+            router.push(`/chat/${conversation.id}`);
+          }
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            router.push(`/chat/${conversation.id}`);
+            if (onSelect) {
+              onSelect(conversation.id);
+            } else {
+              router.push(`/chat/${conversation.id}`);
+            }
           }
         }}
         className={`flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-lg)] px-3 text-left text-sm transition-colors duration-[var(--duration-normal)] ${

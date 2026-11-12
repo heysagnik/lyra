@@ -42,7 +42,7 @@ function CitationHoverCard({
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 200);
+    }, 150);
   };
 
   const hostname = getHostname(source.url);
@@ -66,15 +66,12 @@ function CitationHoverCard({
       {isOpen && (
         <span
           role="tooltip"
-          className="rise-in absolute bottom-full left-1/2 z-50 mb-2 w-72 sm:w-80 -translate-x-1/2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-3 text-left shadow-xl"
+          className="rise-in absolute bottom-full left-1/2 z-50 mb-1.5 w-64 max-w-[280px] -translate-x-1/2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5 text-left shadow-lg"
         >
-          {/* Top header: index & domain */}
-          <span className="mb-1.5 flex items-center justify-between text-xs text-[var(--color-text-tertiary)]">
-            <span className="flex items-center gap-1 font-semibold text-[var(--color-accent)]">
-              <Globe className="h-3 w-3" />
-              <span>Source [{index}]</span>
-            </span>
-            <span className="font-coordinate max-w-[150px] truncate text-[11px] text-[var(--color-text-tertiary)]">
+          {/* Header */}
+          <span className="mb-1 flex items-center justify-between text-[11px] text-[var(--color-text-tertiary)]">
+            <span className="font-semibold text-[var(--color-accent)]">[{index}]</span>
+            <span className="font-coordinate max-w-[180px] truncate text-[10px] text-[var(--color-text-tertiary)]">
               {hostname}
             </span>
           </span>
@@ -84,28 +81,18 @@ function CitationHoverCard({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mb-1.5 line-clamp-2 block text-xs font-semibold text-[var(--color-text)] transition-colors hover:text-[var(--color-accent)]"
+            className="mb-1 line-clamp-2 block text-xs font-medium text-[var(--color-text)] transition-colors hover:text-[var(--color-accent)]"
           >
             {source.title || hostname}
-            <ExternalLink className="ml-1 inline h-3 w-3 opacity-60" />
+            <ExternalLink className="ml-1 inline h-2.5 w-2.5 opacity-50" />
           </a>
 
           {/* Snippet */}
           {source.snippet && (
-            <span className="mb-2 line-clamp-3 block text-[11px] leading-relaxed text-[var(--color-text-secondary)]">
+            <span className="line-clamp-2 block text-[11px] leading-relaxed text-[var(--color-text-secondary)]">
               {source.snippet}
             </span>
           )}
-
-          {/* Footer */}
-          <span className="flex items-center justify-between border-t border-[var(--color-border)] pt-1.5 text-[10px] text-[var(--color-text-tertiary)]">
-            <span>
-              {source.date ? new Date(source.date).toLocaleDateString() : "Web Result"}
-            </span>
-            <span className="flex items-center gap-0.5 font-medium text-[var(--color-accent)] hover:underline">
-              Open source &rarr;
-            </span>
-          </span>
         </span>
       )}
     </span>
