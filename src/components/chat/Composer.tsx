@@ -5,7 +5,12 @@ import { ArrowUp, Square, ChevronDown, Check, Plus, X } from "lucide-react";
 import { REGISTERED_MODELS } from "@/lib/llm/models";
 
 export interface ComposerProps {
-  onSend: (text: string, search: boolean, model: string) => void;
+  onSend: (
+    text: string,
+    search: boolean,
+    model: string,
+    effort?: "low" | "standard" | "max"
+  ) => void;
   isStreaming: boolean;
   onStop: () => void;
   retryAfterSeconds?: number;
@@ -13,6 +18,15 @@ export interface ComposerProps {
 }
 
 const MODEL_STORAGE_KEY = "lyra-model";
+const EFFORT_STORAGE_KEY = "lyra-effort";
+
+export type EffortLevel = "low" | "standard" | "max";
+
+export const EFFORT_LEVELS: { id: EffortLevel; label: string; index: number }[] = [
+  { id: "low", label: "Low", index: 0 },
+  { id: "standard", label: "Medium", index: 1 },
+  { id: "max", label: "High", index: 2 },
+];
 
 /** Text-based file kinds the text-only LLM can actually consume. */
 const ATTACHABLE_TYPES =
@@ -45,6 +59,7 @@ export function Composer({
   const [countdown, setCountdown] = useState<number | undefined>(retryAfterSeconds);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [model, setModel] = useState<string>("primary");
+  const [effort, setEffort] = useState<EffortLevel>("standard");
   const [attachments, setAttachments] = useState<
     { name: string; content: string; size?: number }[]
   >([]);
@@ -82,7 +97,7 @@ export function Composer({
     setAttachments(next);
   };
 
-  // Restore persisted model choice
+  // Restore persisted model and effort choices
   useEffect(() => {
     try {
       const saved = localStorage.getItem(MODEL_STORAGE_KEY);
@@ -94,10 +109,23 @@ export function Composer({
           setModel(saved);
         }
       }
+      const savedEffort = localStorage.getItem(EFFORT_STORAGE_KEY);
+      if (savedEffort === "low" || savedEffort === "standard" || savedEffort === "max") {
+        setEffort(savedEffort);
+      }
     } catch {
       // ignore
     }
   }, []);
+
+  const handleEffortChange = (nextEffort: EffortLevel) => {
+    setEffort(nextEffort);
+    try {
+      localStorage.setItem(EFFORT_STORAGE_KEY, nextEffort);
+    } catch {
+      // ignore
+    }
+  };
 
   // Close the picker on outside click
   useEffect(() => {
@@ -157,7 +185,7 @@ export function Composer({
       prompt += prompt ? `\n\n` : ``;
       prompt += `Attached file “${a.name}”:\n\`\`\`\n${a.content}\n\`\`\``;
     }
-    onSend(prompt, true, model);
+    onSend(prompt, true, model, effort);
     setText("");
     setAttachments([]);
     if (textareaRef.current) {
@@ -293,30 +321,25 @@ export function Composer({
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Model picker */}
+            {/* Model & Effort picker */}
             <div className="relative" ref={pickerRef}>
               <button
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={pickerOpen}
-                disabled={isModelLocked}
                 title={
                   isModelLocked
-                    ? "Model cannot be changed once a conversation has started"
+                    ? "Choose effort (model locked)"
                     : "Choose model"
                 }
-                onClick={() => {
-                  if (!isModelLocked) {
-                    setPickerOpen(!pickerOpen);
-                  }
-                }}
-                className={`flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm transition-[background-color,transform,opacity] duration-[var(--duration-normal)] ${
-                  isModelLocked
-                    ? "cursor-not-allowed opacity-50 text-[var(--color-text-secondary)]"
-                    : "text-[var(--color-text)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
-                }`}
+                onClick={() => setPickerOpen(!pickerOpen)}
+                className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
               >
                 <span className="font-medium text-xs sm:text-sm">{modelLabel}</span>
+
+                <span className="text-[9px] font-semibold text-[var(--color-text-tertiary)] border border-[var(--color-border)]/70 px-1 py-0.5 rounded tracking-wide">
+                  {EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium"}
+                </span>
                 <ChevronDown
                   aria-hidden
                   className={`h-3.5 w-3.5 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-normal)] ${
@@ -325,8 +348,10 @@ export function Composer({
                 />
               </button>
 
-              {pickerOpen && !isModelLocked && (
-                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-44 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-dialog)]">
+              {pickerOpen && (
+                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-60 rounded-[var(--radius-lg)] border border-white/10 bg-[var(--color-surface-1)] p-2 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.6),0_4px_12px_rgba(0,0,0,0.4)] backdrop-blur-md">
+                  {!isModelLocked && (
+                  <div>
                   <div role="listbox" aria-label="Model" className="space-y-0.5">
                     {REGISTERED_MODELS.map((m) => {
                       const selected =
@@ -339,7 +364,9 @@ export function Composer({
                           type="button"
                           role="option"
                           aria-selected={selected}
+                          disabled={isModelLocked}
                           onClick={() => {
+                            if (isModelLocked) return;
                             setModel(m.id);
                             try {
                               localStorage.setItem(MODEL_STORAGE_KEY, m.id);
@@ -349,7 +376,11 @@ export function Composer({
                             setPickerOpen(false);
                           }}
                           className={`flex w-full items-center justify-between rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-xs sm:text-[13px] transition-colors duration-[var(--duration-fast)] ${
-                            selected
+                            isModelLocked
+                              ? selected
+                                ? "bg-[var(--color-surface-2)] font-medium text-[var(--color-text)] cursor-not-allowed"
+                                : "text-[var(--color-text-tertiary)] opacity-40 cursor-not-allowed"
+                              : selected
                               ? "bg-[var(--color-surface-3)] font-medium text-[var(--color-text)]"
                               : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
                           }`}
@@ -365,6 +396,101 @@ export function Composer({
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* Divider */}
+                  <div className="my-2 h-px bg-[var(--color-border)]/60" />
+                  </div>
+                  )}
+
+                  {/* Effort Slider section */}
+                  <div className="px-0.5 pb-0.5">
+                    <div className="flex items-center gap-1.5 px-1 pb-1.5 text-xs text-[var(--color-text-secondary)]">
+                      <span>Effort</span>
+                      <span className="font-semibold text-[var(--color-text)]">
+                        {EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium"}
+                      </span>
+                    </div>
+
+                    <div className="group/slider">
+                    <div
+                      role="slider"
+                      aria-label="Effort"
+                      aria-valuemin={0}
+                      aria-valuemax={2}
+                      aria-valuenow={
+                        EFFORT_LEVELS.find((e) => e.id === effort)?.index ?? 1
+                      }
+                      aria-valuetext={
+                        EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium"
+                      }
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        const currentIndex =
+                          EFFORT_LEVELS.find((lvl) => lvl.id === effort)?.index ?? 1;
+                        if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                          const prev = EFFORT_LEVELS[Math.max(0, currentIndex - 1)];
+                          handleEffortChange(prev.id);
+                        } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                          e.preventDefault();
+                          const next = EFFORT_LEVELS[Math.min(2, currentIndex + 1)];
+                          handleEffortChange(next.id);
+                        }
+                      }}
+                      className="relative flex h-9 w-full cursor-pointer select-none items-center rounded-xl bg-[#1e1e20] p-1 border border-white/5 transition-[border-color,transform] duration-150 ease-out hover:border-white/10 active:scale-[0.99] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus)]"
+                    >
+                      {/* Filled segment from the left edge up to the knob */}
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute bottom-1 left-1 top-1 rounded-lg bg-white/[0.13] transition-[width] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+                        style={{
+                          width:
+                            effort === "low"
+                              ? "36px"
+                              : effort === "standard"
+                              ? "calc(50%)"
+                              : "calc(100% - 8px)",
+                        }}
+                      />
+
+                      {/* Discrete stop notch tick marks */}
+                      <span className="pointer-events-none absolute left-[20px] top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+                      <span className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+                      <span className="pointer-events-none absolute right-[20px] top-1/2 h-2.5 w-[2px] translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+
+                      {/* Active knob — darker pill riding the fill edge */}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-lg border border-white/10 bg-[#1c1c1f] transition-[left] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.97]"
+                        style={{
+                          left:
+                            effort === "low"
+                              ? "4px"
+                              : effort === "standard"
+                              ? "calc(50% - 18px)"
+                              : "calc(100% - 40px)",
+                          boxShadow:
+                            "0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
+                        }}
+                      />
+
+                      {/* Clickable stop targets */}
+                      {EFFORT_LEVELS.map((lvl) => (
+                        <button
+                          key={lvl.id}
+                          type="button"
+                          tabIndex={-1}
+                          aria-label={`Set effort to ${lvl.label}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEffortChange(lvl.id);
+                          }}
+                          className="relative z-10 h-full flex-1 rounded-[8px] bg-transparent focus:outline-none"
+                        />
+                      ))}
+                    </div>
+                    </div>
                   </div>
                 </div>
               )}

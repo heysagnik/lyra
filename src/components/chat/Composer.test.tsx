@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Composer } from "./Composer";
 
 describe("Composer Component", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
   it("disables send button when textarea is empty", () => {
     const handleSend = vi.fn();
     const handleStop = vi.fn();
@@ -38,7 +41,7 @@ describe("Composer Component", () => {
     expect(sendButton.disabled).toBe(false);
     fireEvent.click(sendButton);
 
-    expect(handleSend).toHaveBeenCalledWith("Hello world", true, "primary");
+    expect(handleSend).toHaveBeenCalledWith("Hello world", true, "primary", "standard");
   });
 
   it("shows stop button when isStreaming is true and triggers onStop", () => {
@@ -86,7 +89,7 @@ describe("Composer Component", () => {
     expect(screen.queryByText("AGENT.md")).toBeNull();
   });
 
-  it("locks the model picker button when isModelLocked is true", () => {
+  it("locks the models but allows changing effort when isModelLocked is true", () => {
     const handleSend = vi.fn();
     const handleStop = vi.fn();
 
@@ -99,13 +102,32 @@ describe("Composer Component", () => {
       />
     );
 
-    const modelButton = screen.getByTitle("Model cannot be changed once a conversation has started");
-    expect(modelButton).toBeDefined();
-    expect((modelButton as HTMLButtonElement).disabled).toBe(true);
+    // Button opens the popover so effort can be changed
+    const pickerButton = screen.getByTitle("Choose effort (model locked)");
+    expect(pickerButton).toBeDefined();
+    fireEvent.click(pickerButton);
 
-    // Clicking does not open the picker
-    fireEvent.click(modelButton);
-    expect(screen.queryByRole("listbox")).toBeNull();
+    // The models are not shown when locked
+    expect(screen.queryByRole("option")).toBeNull();
+
+    // But the effort slider can be changed
+    const highBtn = screen.getByLabelText("Set effort to High");
+    fireEvent.click(highBtn);
+    expect(screen.getByText("High")).toBeDefined();
+
+    // Type and send — uses locked model ("primary") and new effort ("max")
+    const textarea = screen.getByPlaceholderText("Send a Message");
+    fireEvent.change(textarea, { target: { value: "Follow up question" } });
+
+    const sendButton = screen.getByLabelText("Send message");
+    fireEvent.click(sendButton);
+
+    expect(handleSend).toHaveBeenCalledWith(
+      "Follow up question",
+      true,
+      "primary",
+      "max"
+    );
   });
 
   it("allows selecting another registered model when unlocked", () => {
@@ -141,6 +163,46 @@ describe("Composer Component", () => {
     const sendButton = screen.getByLabelText("Send message");
     fireEvent.click(sendButton);
 
-    expect(handleSend).toHaveBeenCalledWith("Testing model switch", true, "gpt-oss-20b");
+    expect(handleSend).toHaveBeenCalledWith("Testing model switch", true, "gpt-oss-20b", "standard");
+  });
+
+  it("adjusts effort level via the slider and sends with selected effort", () => {
+    const handleSend = vi.fn();
+    const handleStop = vi.fn();
+
+    render(
+      <Composer
+        onSend={handleSend}
+        isStreaming={false}
+        onStop={handleStop}
+        isModelLocked={false}
+      />
+    );
+
+    // Open model & effort popover
+    const modelButton = screen.getByTitle("Choose model");
+    fireEvent.click(modelButton);
+
+    // Default effort label should be Medium (slider header + trigger badge)
+    expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
+
+    // Click high effort stop
+    const highBtn = screen.getByLabelText("Set effort to High");
+    fireEvent.click(highBtn);
+    expect(screen.getByText("High")).toBeDefined();
+
+    // Type and send
+    const textarea = screen.getByPlaceholderText("Send a Message");
+    fireEvent.change(textarea, { target: { value: "Complex itinerary request" } });
+
+    const sendButton = screen.getByLabelText("Send message");
+    fireEvent.click(sendButton);
+
+    expect(handleSend).toHaveBeenCalledWith(
+      "Complex itinerary request",
+      true,
+      "primary",
+      "max"
+    );
   });
 });

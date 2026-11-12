@@ -46,6 +46,7 @@ export function ChatContainer({
     search: boolean;
   } | null>(null);
   const [lastModel, setLastModel] = useState<string>("primary");
+  const [lastEffort, setLastEffort] = useState<"low" | "standard" | "max">("standard");
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isRenamingHeader, setIsRenamingHeader] = useState(false);
   const [headerTitle, setHeaderTitle] = useState("");
@@ -144,13 +145,15 @@ export function ChatContainer({
   const handleSend = (
     text: string,
     _search: boolean,
-    model: string = "primary"
+    model: string = "primary",
+    effort: "low" | "standard" | "max" = "standard"
   ) => {
     setLastFailedPrompt({ text, search: true });
     setLastModel(model);
+    setLastEffort(effort);
     setErrorMessage(null);
     clearError();
-    void sendMessage(text, true, model);
+    void sendMessage(text, true, model, effort);
   };
 
   const handleRegenerate = () => {
@@ -158,13 +161,13 @@ export function ChatContainer({
     if (lastUser?.content) {
       setErrorMessage(null);
       clearError();
-      void sendMessage(lastUser.content, true, lastModel);
+      void sendMessage(lastUser.content, true, lastModel, lastEffort);
     }
   };
 
   const handleRetry = () => {
     if (lastFailedPrompt) {
-      handleSend(lastFailedPrompt.text, lastFailedPrompt.search);
+      handleSend(lastFailedPrompt.text, lastFailedPrompt.search, lastModel, lastEffort);
     }
   };
 

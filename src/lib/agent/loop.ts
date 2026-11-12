@@ -131,6 +131,12 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     const modelSelection = getLanguageModel(input.model);
     const activeModelName = modelSelection.modelName;
 
+    // Groq free/on-demand tier enforces a 1,000 Output Tokens Per Minute (OTPM) limit on Qwen 3.8 27B
+    const effectiveMaxTokensOut =
+      activeModelName === "qwen/qwen3.8-27b"
+        ? Math.min(effortBudget.maxTokensOut, 900)
+        : effortBudget.maxTokensOut;
+
     const streamResult = streamText({
       model: modelSelection.model,
       system: ctx.systemPrompt,
@@ -139,7 +145,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       prepareStep: ({ stepNumber }) =>
         stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
       stopWhen: stepCountIs(effortBudget.iterations),
-      maxOutputTokens: effortBudget.maxTokensOut,
+      maxOutputTokens: effectiveMaxTokensOut,
       maxRetries: 2,
       onError: async ({ error }) => {
         logStructuredError({
