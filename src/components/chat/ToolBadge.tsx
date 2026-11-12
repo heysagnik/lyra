@@ -7,38 +7,30 @@ export interface ToolBadgeProps {
   isComplete?: boolean;
 }
 
-/**
- * Polished, minimal status pill showing web search execution.
- * Subtle neutral styling with responsive truncation and clean typography.
- */
+
 export function ToolBadge({ query, isComplete = false }: ToolBadgeProps) {
   return (
-    <div
-      className="group mb-2.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 px-2.5 py-0.5 text-[11px] leading-5 text-[var(--color-text-tertiary)] shadow-2xs backdrop-blur-xs transition-[border-color,background-color] duration-[var(--duration-fast)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-2)]"
-      title={query ? `Search query: ${query}` : "Web search"}
-    >
+    <div className="mb-2 flex items-center gap-1.5 text-xs text-[var(--text-faint)] select-none">
       {isComplete ? (
         <Globe
           aria-hidden
-          className="h-3 w-3 shrink-0 text-[var(--color-text-tertiary)] transition-colors group-hover:text-[var(--color-text-secondary)]"
+          className="h-3.5 w-3.5 shrink-0 text-[var(--text-faint)]"
         />
       ) : (
         <Loader2
           aria-hidden
-          className="h-3 w-3 shrink-0 animate-spin text-[var(--color-text-secondary)]"
+          className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--text-faint)]"
         />
       )}
       <span className="truncate">
-        <span>{isComplete ? "Searched" : "Searching"}</span>
-        {query ? (
+        <span>{isComplete ? "Searched the web" : "Searching the web"}</span>
+        {query && (
           <>
-            <span className="mx-1 text-[var(--color-border-strong)] opacity-60">·</span>
-            <span className="text-[var(--color-text-secondary)] transition-colors group-hover:text-[var(--color-text)]">
+            <span className="mx-1 text-[var(--text-faint)] opacity-60">·</span>
+            <span className="font-normal text-[var(--text-muted)]">
               “{query}”
             </span>
           </>
-        ) : (
-          <span> web</span>
         )}
       </span>
     </div>

@@ -313,7 +313,7 @@ export function ChatContainer({
               <div
                 role="menu"
                 aria-label="Conversation options"
-                className="popover-in-left absolute left-12 top-full z-50 mt-1 w-44 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-dialog)]"
+                className="popover-in-left absolute left-12 top-full z-50 mt-1 w-32 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-0.5 shadow-md"
               >
                 <button
                   role="menuitem"
@@ -322,9 +322,9 @@ export function ChatContainer({
                     setHeaderTitle(activeConv?.title ?? "");
                     setIsRenamingHeader(true);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+                  className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
                 >
-                  <Pencil aria-hidden className="h-3.5 w-3.5 text-[var(--color-text-secondary)]" />
+                  <Pencil aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
                   Rename
                 </button>
                 <button
@@ -337,9 +337,9 @@ export function ChatContainer({
                       router.push("/");
                     }
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.96]"
+                  className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
                 >
-                  <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                  <Trash2 aria-hidden className="h-3.5 w-3.5 shrink-0" />
                   Delete
                 </button>
               </div>
