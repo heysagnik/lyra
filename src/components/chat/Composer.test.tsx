@@ -34,7 +34,7 @@ describe("Composer Component", () => {
       />
     );
 
-    const textarea = screen.getByPlaceholderText("Send a Message");
+    const textarea = screen.getByPlaceholderText("Message lyra");
     fireEvent.change(textarea, { target: { value: "Hello world" } });
 
     const sendButton = screen.getByLabelText("Send message") as HTMLButtonElement;
@@ -116,7 +116,7 @@ describe("Composer Component", () => {
     expect(screen.getAllByText("High").length).toBeGreaterThan(0);
 
     // Type and send — uses locked model ("primary") and new effort ("max")
-    const textarea = screen.getByPlaceholderText("Send a Message");
+    const textarea = screen.getByPlaceholderText("Message lyra");
     fireEvent.change(textarea, { target: { value: "Follow up question" } });
 
     const sendButton = screen.getByLabelText("Send message");
@@ -157,7 +157,7 @@ describe("Composer Component", () => {
     }
 
     // Type and send
-    const textarea = screen.getByPlaceholderText("Send a Message");
+    const textarea = screen.getByPlaceholderText("Message lyra");
     fireEvent.change(textarea, { target: { value: "Testing model switch" } });
 
     const sendButton = screen.getByLabelText("Send message");
@@ -192,7 +192,7 @@ describe("Composer Component", () => {
     expect(screen.getAllByText("High").length).toBeGreaterThan(0);
 
     // Type and send
-    const textarea = screen.getByPlaceholderText("Send a Message");
+    const textarea = screen.getByPlaceholderText("Message lyra");
     fireEvent.change(textarea, { target: { value: "Complex itinerary request" } });
 
     const sendButton = screen.getByLabelText("Send message");

@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize from "rehype-sanitize";
-import { CheckIcon, CopyIcon, ArrowSquareOutIcon, GlobeIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
 import type { SearchSource } from "@/types";
 
 interface CodeBlockProps {
@@ -143,18 +143,18 @@ function CodeBlock({ className, children }: CodeBlockProps) {
   };
 
   return (
-    <div className="font-coordinate my-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--line-soft)] bg-[var(--panel)] text-xs">
-      <div className="flex items-center justify-between border-b border-[var(--line-soft)] px-3 py-1.5 text-[var(--text-faint)]">
+    <div className="font-coordinate my-3 overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-sidebar)] text-xs">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-1.5 text-[var(--color-text-tertiary)]">
         <span className="lowercase tracking-wide">{language || "text"}</span>
         <button
           onClick={handleCopy}
           aria-label="CopyIcon code"
-          className="flex items-center gap-1 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--accent)]"
+          className="flex items-center gap-1 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--color-accent)]"
         >
           {copied ? (
             <>
-              <CheckIcon className="h-3.5 w-3.5 text-[var(--accent)]" />
-              <span className="text-[var(--accent)]">Copied</span>
+              <CheckIcon className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+              <span className="text-[var(--color-accent)]">Copied</span>
             </>
           ) : (
             <>
@@ -164,7 +164,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
           )}
         </button>
       </div>
-      <pre className="hljs overflow-x-auto p-3 leading-relaxed text-[var(--text)]">
+      <pre className="hljs overflow-x-auto p-3 leading-relaxed text-[var(--color-text)]">
         <code>{children}</code>
       </pre>
     </div>
@@ -184,7 +184,7 @@ export function Markdown({
   );
 
   return (
-    <div className="max-w-none leading-relaxed break-words text-[var(--text)] text-pretty">
+    <div className="max-w-none leading-relaxed break-words text-[var(--color-text)] text-pretty">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, rehypeSanitize]}
@@ -194,7 +194,7 @@ export function Markdown({
             if (isInline) {
               return (
                 <code
-                  className="font-coordinate rounded bg-[var(--panel-3)] px-1.5 py-0.5 text-[0.85em] text-[var(--text)]"
+                  className="font-coordinate rounded bg-[var(--color-hover)] px-1.5 py-0.5 text-[0.85em] text-[var(--color-text)]"
                   {...props}
                 >
                   {children}
@@ -230,7 +230,7 @@ export function Markdown({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-[var(--accent)] underline decoration-[var(--accent)]/40 underline-offset-2 transition-colors duration-[var(--duration-normal)] hover:decoration-[var(--accent)]"
+                className="font-medium text-[var(--color-accent)] underline decoration-[var(--color-accent)]/40 underline-offset-2 transition-colors duration-[var(--duration-normal)] hover:decoration-[var(--color-accent)]"
               >
                 {children}
               </a>
@@ -238,19 +238,19 @@ export function Markdown({
           },
           h1: (props) => (
             <h2
-              className="font-display mt-5 mb-2 text-xl text-[var(--text)] text-wrap-balance"
+              className="mt-5 mb-2 text-xl text-[var(--color-text)] text-balance"
               {...props}
             />
           ),
           h2: (props) => (
             <h3
-              className="font-display mt-4 mb-2 text-lg text-[var(--text)] text-wrap-balance"
+              className="mt-4 mb-2 text-lg text-[var(--color-text)] text-balance"
               {...props}
             />
           ),
           h3: (props) => (
             <h4
-              className="mt-3 mb-1.5 text-sm font-semibold tracking-wide text-[var(--text)]"
+              className="mt-3 mb-1.5 text-sm font-semibold tracking-wide text-[var(--color-text)]"
               {...props}
             />
           ),
@@ -262,31 +262,31 @@ export function Markdown({
           ),
           blockquote: (props) => (
             <blockquote
-              className="my-3 border-l-2 border-[var(--accent)]/40 pl-3 text-[var(--text-muted)] italic"
+              className="my-3 border-l-2 border-[var(--color-accent)]/40 pl-3 text-[var(--color-text-secondary)] italic"
               {...props}
             />
           ),
           table: (props) => (
             <div className="my-3 overflow-x-auto">
               <table
-                className="w-full border-collapse border border-[var(--line-soft)] text-xs"
+                className="w-full border-collapse border border-[var(--color-border)] text-xs"
                 {...props}
               />
             </div>
           ),
           th: (props) => (
             <th
-              className="font-coordinate border border-[var(--line-soft)] bg-[var(--panel-2)] px-2.5 py-1.5 text-left text-[10px] uppercase tracking-wider text-[var(--text-muted)]"
+              className="font-coordinate border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-1.5 text-left text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]"
               {...props}
             />
           ),
           td: (props) => (
             <td
-              className="border border-[var(--line-soft)] px-2.5 py-1.5 text-[var(--text)]"
+              className="border border-[var(--color-border)] px-2.5 py-1.5 text-[var(--color-text)]"
               {...props}
             />
           ),
-          hr: () => <hr className="my-4 border-[var(--line-soft)]" />,
+          hr: () => <hr className="my-4 border-[var(--color-border)]" />,
         }}
       >
         {processedContent}

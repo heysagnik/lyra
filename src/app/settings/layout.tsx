@@ -37,7 +37,7 @@ export default async function SettingsLayout({
         <SettingsNav />
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 rise-in">
         <main className="mx-auto w-full max-w-[960px] px-5 py-10 sm:px-8 md:py-16">
           {children}
         </main>

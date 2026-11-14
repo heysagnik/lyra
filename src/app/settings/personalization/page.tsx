@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BrainIcon, TrashIcon } from "@phosphor-icons/react";
+import { BrainIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import type { Memory } from "@/types";
 
 const KIND_LABELS: Record<Memory["kind"], string> = {
@@ -101,7 +101,7 @@ export default function PersonalizationSettingsPage() {
                     title="Forget this"
                     className="shrink-0 rounded-[var(--radius-md)] p-1.5 text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] hover:text-[var(--color-danger)] disabled:opacity-50"
                   >
-                    <TrashIcon aria-hidden className="h-3.5 w-3.5" />
+                    <TrashSimpleIcon aria-hidden className="h-3.5 w-3.5" />
                   </button>
                 </li>
               ))}

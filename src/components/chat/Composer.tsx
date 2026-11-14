@@ -216,7 +216,7 @@ export function Composer({
           setIsDragging(false);
           void handleFiles(e.dataTransfer.files);
         }}
-        className={`rounded-[22px] border ${
+        className={`rounded-[var(--radius-composer)] border ${
           isDragging
             ? "border-[var(--color-focus)] bg-[var(--color-surface-2)] shadow-[var(--shadow-composer-focus)]"
             : "border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-composer)]"
@@ -275,7 +275,7 @@ export function Composer({
           placeholder={
             countdown
               ? `Rate limit reached — try again in ${countdown}s…`
-              : "Send a Message"
+              : "Message lyra"
           }
           className="w-full resize-none border-0 bg-transparent px-4 pb-2 pt-3.5 text-base leading-relaxed text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus-visible:outline-none sm:px-5 sm:pt-4 sm:text-[15px]"
         />
@@ -299,7 +299,7 @@ export function Composer({
             aria-label="Attach files"
             title="Attach text, code, or data files"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-[color,border-color,transform] duration-[var(--duration-normal)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)] active:scale-[0.96]"
+            className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-[color,border-color,transform] duration-[var(--duration-normal)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)] active:scale-[0.96]"
           >
             <PlusIcon className="h-4 w-4" />
           </button>
@@ -468,7 +468,7 @@ export function Composer({
                             e.stopPropagation();
                             handleEffortChange(lvl.id);
                           }}
-                          className="relative z-10 h-full flex-1 rounded-[8px] bg-transparent focus:outline-none"
+                          className="relative z-10 h-full flex-1 rounded-[var(--radius-md)] bg-transparent focus:outline-none"
                         />
                       ))}
                     </div>
@@ -484,7 +484,7 @@ export function Composer({
                 type="button"
                 onClick={onStop}
                 aria-label="Stop generating"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
+                className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
               >
                 <SquareIcon className="h-2.5 w-2.5 fill-current" />
               </button>
@@ -494,7 +494,7 @@ export function Composer({
                 onClick={handleSubmit}
                 disabled={!canSend}
                 aria-label="Send message"
-                className={`flex h-8 w-8 items-center justify-center rounded-full transition-[background-color,color,transform,opacity] duration-[var(--duration-fast)] active:scale-[0.96] ${
+                className={`flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full transition-[background-color,color,transform,opacity] duration-[var(--duration-fast)] active:scale-[0.96] ${
                   canSend
                     ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
                     : "cursor-not-allowed bg-[var(--color-surface-3)] text-[var(--color-text-tertiary)]"

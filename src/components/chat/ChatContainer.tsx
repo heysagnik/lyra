@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ListIcon, CaretDownIcon, ShareFatIcon , CheckIcon, PencilIcon, TrashIcon, SidebarIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, ShareFatIcon , CheckIcon, TrashSimpleIcon, SidebarIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
@@ -35,6 +35,15 @@ export function ChatContainer({
     setIsLayoutReady(true);
   }, []);
 
+  // Remember the last chat surface so Settings' Back link can return here
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("lyra:lastChatPath", window.location.pathname);
+    } catch {
+      // storage unavailable
+    }
+  }, [activeId]);
+
   useEffect(() => {
     setActiveId(initialConversationId);
   }, [initialConversationId]);
@@ -56,7 +65,7 @@ export function ChatContainer({
     queryFn: () => fetchConversations(),
   });
 
-  const { data: activeConvData } = useQuery({
+  const { data: activeConvData, isPending: isConvPending } = useQuery({
     queryKey: ["conversation", activeId],
     queryFn: () => (activeId ? fetchConversation(activeId) : null),
     enabled: !!activeId,
@@ -165,6 +174,10 @@ export function ChatContainer({
   };
 
   const isEmpty = messages.length === 0;
+  // First load of a conversation: no cached data yet. Keep the chat layout
+  // (skeleton, not EmptyState) so the composer never jumps between branches.
+  const isSwitching = !!activeId && isConvPending;
+  const showEmpty = isEmpty && !isSwitching;
 
   const composer = (
     <Composer
@@ -176,7 +189,7 @@ export function ChatContainer({
   );
 
   return (
-    <div className="fixed inset-0 flex w-full overflow-hidden bg-[var(--bg)]">
+    <div className="fixed inset-0 flex w-full overflow-hidden bg-[var(--color-canvas)]">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
@@ -201,18 +214,23 @@ export function ChatContainer({
 
       {/* Main column */}
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-30 flex h-13 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--bg)] px-3 sm:h-12 sm:px-4">
+        <header className="relative z-30 flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-canvas)] px-3 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={() => setIsSidebarOpen((v) => !v)}
               aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
               aria-expanded={isSidebarOpen}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.96]"
+              className="flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)] active:scale-[0.96]"
             >
               <SidebarIcon className="h-[18px] w-[18px]" />
             </button>
 
-            {isEmpty ? (
+            {isSwitching ? (
+              <div
+                aria-hidden
+                className="h-5 w-40 skeleton rounded-[var(--radius-md)]"
+              />
+            ) : isEmpty ? (
               <div className="flex items-center md:hidden"/>
             ) : isRenamingHeader ? (
               <form
@@ -241,25 +259,27 @@ export function ChatContainer({
                 />
               </form>
             ) : (
-              <div className="relative">
-                <button
-                  onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
-                  aria-haspopup="menu"
-                  aria-expanded={headerMenuOpen}
-                  className="flex min-w-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
-                >
-                  <h1 className="truncate max-w-[170px] text-sm font-medium text-[var(--color-text)] sm:max-w-md sm:text-[15px]">
-                    {activeConv?.title || "New chat"}
-                  </h1>
-                  <CaretDownIcon
-                    aria-hidden
-                    className={`h-4 w-4 shrink-0 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-fast)] ${
-                      headerMenuOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+              <div className="relative flex min-w-0 items-center gap-1.5 px-2 py-1.5">
+                <h1 className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-text)] sm:text-[15px]">
+                  {activeConv?.title || "New chat"}
+                </h1>
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
+                    aria-haspopup="menu"
+                    aria-expanded={headerMenuOpen}
+                    aria-label="Conversation options"
+                    className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-md)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+                  >
+                    <CaretDownIcon
+                      aria-hidden
+                      className={`h-4 w-4 text-[var(--color-text-tertiary)] transition-transform duration-[var(--duration-fast)] ${
+                        headerMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-                {/* Title dropdown menu */}
+                  {/* Title dropdown menu */}
                 {headerMenuOpen && (
                   <>
                     <div
@@ -270,7 +290,7 @@ export function ChatContainer({
                     <div
                       role="menu"
                       aria-label="Conversation options"
-                      className="popover-in absolute left-0 top-full z-50 mt-1 w-32 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-0.5 shadow-[var(--shadow-popover)]"
+                      className="popover-in absolute left-0 top-full z-50 mt-1.5 w-56 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1 shadow-[var(--shadow-popover)]"
                     >
                       <button
                         role="menuitem"
@@ -279,11 +299,32 @@ export function ChatContainer({
                           setHeaderTitle(activeConv?.title ?? "");
                           setIsRenamingHeader(true);
                         }}
-                        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
                       >
-                        <PencilIcon aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-secondary)]" />
-                        Rename
+                        <PencilSimpleIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                        <span className="flex-1">Rename</span>
                       </button>
+                      <button
+                        role="menuitem"
+                        onClick={async () => {
+                          setHeaderMenuOpen(false);
+                          if (!activeId) return;
+                          try {
+                            await navigator.clipboard.writeText(
+                              `${window.location.origin}/share/${activeId}`
+                            );
+                            setShared(true);
+                            setTimeout(() => setShared(false), 2000);
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+                      >
+                        <ShareFatIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                        <span className="flex-1">Share chat</span>
+                      </button>
+                      <div className="mx-1 my-1 border-t border-[var(--color-border)]" />
                       <button
                         role="menuitem"
                         onClick={async () => {
@@ -294,21 +335,22 @@ export function ChatContainer({
                             router.push("/");
                           }
                         }}
-                        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.99]"
                       >
-                        <TrashIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
-                        Delete
+                        <TrashSimpleIcon aria-hidden className="h-4 w-4 shrink-0" />
+                        <span className="flex-1">Delete</span>
                       </button>
                     </div>
                   </>
                 )}
+                </div>
               </div>
             )}
           </div>
 
           {/* Right section: Action buttons */}
           <div className="flex shrink-0 items-center gap-1">
-            {!isEmpty && (
+            {!showEmpty && (
               <button
                 onClick={async () => {
                   if (!activeId) return;
@@ -322,7 +364,7 @@ export function ChatContainer({
                     // ignore
                   }
                 }}
-                aria-label="ShareNetwork chat"
+                aria-label="Share chat"
                 title="Copy a public read-only link to this chat"
                 className="flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-xs font-medium text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.96] disabled:opacity-50 sm:px-3 sm:text-sm"
                 disabled={!activeId}
@@ -344,7 +386,7 @@ export function ChatContainer({
 
         </header>
 
-        {isEmpty ? (
+        {showEmpty ? (
           <>
             <EmptyState />
             <div className="composer-scrim pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-8 sm:px-4 sm:pb-4">
@@ -354,8 +396,10 @@ export function ChatContainer({
         ) : (
           <>
             <MessageList
+              key={activeId ?? "new"}
               messages={messages}
               isStreaming={isStreaming}
+              isLoading={isSwitching}
               onRegenerate={handleRegenerate}
             />
 

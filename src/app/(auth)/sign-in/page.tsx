@@ -80,7 +80,7 @@ export default function SignInPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter Your Email"
+              placeholder="Enter your email"
               className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
@@ -105,7 +105,7 @@ export default function SignInPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter Your Password"
+              placeholder="Enter your password"
               className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
@@ -124,7 +124,7 @@ export default function SignInPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/sign-up"
-          className="font-medium text-[var(--color-update)] hover:underline"
+          className="font-medium text-[var(--color-accent)] hover:underline"
         >
           Sign up
         </Link>

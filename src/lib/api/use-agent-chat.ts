@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useMemo, useCallback, useState, useEffect } from "react";
+import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import type { SearchSource } from "@/types";
 
 export interface ChatMessagePart {
@@ -91,10 +91,17 @@ export function useAgentChat({
     },
   });
 
+  const prevConvIdRef = useRef<string | undefined>(conversationId);
   useEffect(() => {
+    const prev = prevConvIdRef.current;
+    prevConvIdRef.current = conversationId;
     setActiveConversationId(conversationId);
     setCurrentSources([]);
-    if (!conversationId) {
+    // Drop the previous conversation's messages immediately so a switch
+    // never shows stale content from the old chat under the new title.
+    // Exception: a brand-new chat being assigned its id mid-stream — those
+    // messages are live and must not be cleared.
+    if (prev !== conversationId && !(prev === undefined && conversationId)) {
       setMessages([]);
       setSourcesByMsgId({});
     }

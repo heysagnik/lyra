@@ -125,9 +125,9 @@ export function MessageBubble({
           <button
             type="button"
             onClick={handleCopy}
-            aria-label="CopyIcon message"
-            title="CopyIcon"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
+            aria-label="Copy message"
+            title="Copy"
+            className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-[color,background-color,transform] duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
           >
             {copied ? (
               <CheckIcon aria-hidden key="copied" className="icon-in h-3.5 w-3.5 text-[var(--color-success)]" />
@@ -141,7 +141,7 @@ export function MessageBubble({
               onClick={onRegenerate}
               aria-label="Regenerate response"
               title="Regenerate"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
+              className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text-secondary)] active:scale-[0.96]"
             >
               <ArrowsClockwiseIcon aria-hidden className="h-3.5 w-3.5" />
             </button>

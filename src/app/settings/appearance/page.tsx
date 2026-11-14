@@ -13,15 +13,15 @@ type ThemeValue = (typeof THEMES)[number]["value"];
 const STORAGE_KEY = "lyra-theme";
 
 function ThemePreview({ mode }: { mode: ThemeValue }) {
-  // Half-and-half canvas for the System option
+  // Half-and-half canvas for the System option; values mirror the real tokens
   const canvas =
     mode === "light"
-      ? "#f6f6f6"
+      ? "#fcfcfc"
       : mode === "dark"
-        ? "#141414"
-        : "linear-gradient(90deg, #f6f6f6 50%, #141414 50%)";
+        ? "#161616"
+        : "linear-gradient(90deg, #fcfcfc 50%, #161616 50%)";
   const surface = mode === "light" ? "#ffffff" : mode === "dark" ? "#1c1c1c" : "#e8e8e8";
-  const text = mode === "light" ? "#171717" : mode === "dark" ? "#ededed" : "#6b6b6b";
+  const text = mode === "light" ? "#171717" : mode === "dark" ? "#ededed" : "#747474";
 
   return (
     <div
@@ -108,7 +108,7 @@ export default function AppearanceSettingsPage() {
                   aria-pressed={selected}
                   className={`relative flex-1 rounded-[var(--radius-lg)] border p-1 text-left transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] active:scale-[0.98] ${
                     selected
-                      ? "border-[var(--color-update)] shadow-[0_0_0_1px_var(--color-update)]"
+                      ? "border-[var(--color-accent)] shadow-[0_0_0_1px_var(--color-accent)]"
                       : "border-transparent hover:border-[var(--color-border-strong)]"
                   }`}
                 >
@@ -118,7 +118,7 @@ export default function AppearanceSettingsPage() {
                     {label}
                   </span>
                   {selected && (
-                    <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-update)] text-[var(--color-on-accent)]">
+                    <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)]">
                       <CheckIcon aria-hidden className="h-2.5 w-2.5" weight="bold" />
                     </span>
                   )}
