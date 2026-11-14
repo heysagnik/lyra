@@ -84,12 +84,23 @@ export function MessageBubble({
       "toolInvocation" in p ||
       "toolCallId" in p
   );
-  const dbToolCall = (message.toolCalls as Array<{ query?: string } | undefined>)?.[0];
-  const toolQuery =
+  // Every distinct search query this turn: persisted tool calls plus the
+  // live streaming tool part, deduped in order.
+  const toolQueries: string[] = [];
+  const pushQuery = (q: unknown) => {
+    if (typeof q === "string" && q.trim() && !toolQueries.includes(q.trim())) {
+      toolQueries.push(q.trim());
+    }
+  };
+  for (const call of (message.toolCalls as Array<{ query?: string }> | undefined) ?? []) {
+    pushQuery(call?.query);
+  }
+  const partInput =
     (toolPart as { input?: { query?: string } })?.input?.query ||
     (toolPart as { args?: { query?: string } })?.args?.query ||
-    (toolPart as { toolInvocation?: { args?: { query?: string } } })?.toolInvocation?.args?.query ||
-    dbToolCall?.query;
+    (toolPart as { toolInvocation?: { args?: { query?: string } } })?.toolInvocation?.args
+      ?.query;
+  pushQuery(partInput);
 
   const hasToolPart =
     !!toolPart ||
@@ -102,12 +113,12 @@ export function MessageBubble({
 
   return (
     <div className="w-full py-3">
-      {hasToolPart && <ToolBadge query={toolQuery} isComplete={!isLatestStreaming} />}
+      {hasToolPart && <ToolBadge queries={toolQueries} isComplete={!isLatestStreaming} />}
 
       {message.content ? (
         <Markdown content={message.content} sources={message.sources} />
       ) : isLatestStreaming ? (
-        <div className="flex items-center gap-2 py-1 text-xs text-[var(--color-text-faint)]">
+        <div className="flex items-center gap-2 py-1 text-xs text-[var(--color-text-tertiary)]">
           <span
             aria-hidden
             className="thinking-star h-1.5 w-1.5 rounded-full bg-[var(--color-text-secondary)]"

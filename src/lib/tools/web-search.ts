@@ -35,6 +35,24 @@ export interface SearchExecutionResult {
 }
 
 /**
+ * Normalizes a query for per-turn dedupe and cache keys so repeated
+ * searches with different casing/spacing collapse into one.
+ */
+export function normalizeQueryKey(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Structured search result for the ReAct loop: sources on success, or a
+ * graceful note the model can act on (retry differently or answer from
+ * knowledge) — never a thrown error.
+ */
+export interface StructuredSearchResult {
+  sources: SearchSource[];
+  note?: string;
+}
+
+/**
  * Truncates snippet at word boundary without splitting words.
  */
 export function truncateSnippet(
@@ -160,6 +178,72 @@ async function callTinySearchApi(
 }
 
 /**
+ * Runs one query against the search API with a short backoff retry and
+ * the shared LRU cache. Never throws — failures come back as a note.
+ */
+export async function searchWebStructured(params: {
+  query: string;
+  recency_days?: number;
+}): Promise<StructuredSearchResult> {
+  const query = params.query.trim();
+  if (!query) {
+    return {
+      sources: [],
+      note: "Tool error: Search query was empty. Please specify keywords (e.g. web_search({ query: 'hubspot pricing 2026' })).",
+    };
+  }
+
+  const cacheKey = computeSearchCacheKey(query, params.recency_days);
+  const cached = await getCachedSearch(cacheKey);
+  if (cached && cached.length > 0) {
+    return { sources: cached };
+  }
+
+  let sources: SearchSource[] = [];
+  try {
+    sources = await callTinySearchApi(query, params.recency_days);
+  } catch {
+    // Brief backoff, then one more attempt — transient API hiccups should
+    // never surface as a failed turn.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      sources = await callTinySearchApi(query, params.recency_days);
+    } catch {
+      return {
+        sources: [],
+        note: "Web search is currently unavailable. Answer using your existing knowledge and briefly mention that live search could not be reached.",
+      };
+    }
+  }
+
+  if (sources.length === 0) {
+    return {
+      sources: [],
+      note: "No relevant search results were found for these keywords. Try different or more specific keywords, or answer from your own knowledge.",
+    };
+  }
+
+  await setCachedSearch(cacheKey, sources);
+  return { sources };
+}
+
+/**
+ * Formats sources for the model with global (turn-wide) numbering so
+ * inline citations match the sources panel across multiple searches.
+ */
+export function formatSourcesForModel(
+  sources: SearchSource[],
+  startIndex = 0
+): string {
+  return sources
+    .map(
+      (s, index) =>
+        `[${startIndex + index + 1}] ${s.title}\nURL: ${s.url}\nDate: ${s.date || "unknown"}\nSnippet: ${s.snippet}`
+    )
+    .join("\n\n");
+}
+
+/**
  * Search executor with retry, caching, and graceful degradation.
  */
 export async function executeWebSearch(
@@ -181,51 +265,28 @@ export async function executeWebSearch(
     return "Tool error: Search query was empty. Please specify keywords (e.g. web_search({ query: 'hubspot pricing 2026' })).";
   }
 
-  const query = rawQuery.trim();
-  const { recency_days } = parsed.data;
-  const cacheKey = computeSearchCacheKey(query, recency_days);
+  const result = await searchWebStructured({
+    query: rawQuery,
+    recency_days: parsed.data.recency_days,
+  });
 
-  const cached = await getCachedSearch(cacheKey);
-  if (cached && cached.length > 0) {
-    if (onSourcesResolved) onSourcesResolved(cached);
-    return formatSourcesForModel(cached);
+  if (result.sources.length === 0) {
+    return (
+      result.note ||
+      "No relevant search results were found for the query."
+    );
   }
 
-  let sources: SearchSource[] = [];
-  try {
-    sources = await callTinySearchApi(query, recency_days);
-  } catch {
-    try {
-      sources = await callTinySearchApi(query, recency_days);
-    } catch {
-      return "Web search is currently unavailable. Please answer using your existing knowledge and mention that search could not be reached.";
-    }
-  }
-
-  if (sources.length === 0) {
-    return "No relevant search results were found for the query.";
-  }
-
-  await setCachedSearch(cacheKey, sources);
   if (onSourcesResolved) {
-    onSourcesResolved(sources);
+    onSourcesResolved(result.sources);
   }
 
-  return formatSourcesForModel(sources);
-}
-
-function formatSourcesForModel(sources: SearchSource[]): string {
-  return sources
-    .map(
-      (s, index) =>
-        `[${index + 1}] ${s.title}\nURL: ${s.url}\nDate: ${s.date || "unknown"}\nSnippet: ${s.snippet}`
-    )
-    .join("\n\n");
+  return formatSourcesForModel(result.sources);
 }
 
 export const webSearchTool = tool({
   description:
-    "Search the live web for current information. Use for anything time-sensitive, factual, or outside your training data.",
+    "Search the live web for current information. Call it multiple times per turn with distinct, refined queries when research requires it: first to locate facts, then to verify or fill gaps.",
   inputSchema: searchParametersSchema,
   execute: async (args: SearchParameters) => executeWebSearch(args),
 });

@@ -12,17 +12,23 @@ export const SUMMARY_MAX_TOKENS = 300;
 /** Maximum character length for search result snippet before word-boundary truncation in T4 */
 export const SNIPPET_MAX_CHARS = 300;
 
-/** Maximum tool call iterations per turn before forcing text output */
-export const TOOL_MAX_ITERATIONS = 2;
+/** Maximum web_search calls per turn before the model must answer from evidence */
+export const MAX_SEARCH_CALLS_PER_TURN = 5;
+
+/** Maximum unique sources retained across all searches in one turn */
+export const MAX_SOURCES_PER_TURN = 10;
 
 /** Maximum output tokens generation cap for LLM responses (standard effort) */
 export const MAX_TOKENS_OUT = 1024;
 
-/** Per-turn effort tiers: tool-loop iterations and output token ceiling */
+/**
+ * Per-turn effort tiers: generation-step budget (each step may think,
+ * call web_search, or answer — the ReAct loop) and output token ceiling.
+ */
 export const EFFORT_BUDGET = {
-  low: { iterations: 1, maxTokensOut: 512 },
-  standard: { iterations: TOOL_MAX_ITERATIONS, maxTokensOut: MAX_TOKENS_OUT },
-  max: { iterations: 4, maxTokensOut: 4096 },
+  low: { iterations: 2, maxTokensOut: 512 },
+  standard: { iterations: 4, maxTokensOut: MAX_TOKENS_OUT },
+  max: { iterations: 6, maxTokensOut: 4096 },
 } as const;
 
 export type Effort = keyof typeof EFFORT_BUDGET;
