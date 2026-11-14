@@ -26,9 +26,12 @@ describe("Environment Validation", () => {
     process.env.BETTER_AUTH_URL = "http://localhost:3000";
     process.env.GROQ_API_KEY = "gsk_123";
     process.env.TINYFISH_API_KEY = "tf_123";
+    // Exercise the optional-variable default
+    process.env.NVIDIA_API_KEY = "";
 
     const env = getEnv();
     expect(env).toBeDefined();
-    expect(env.GROQ_MODEL_PRIMARY).toBe("qwen/qwen3.8-27b");
+    // NVIDIA NIM key is optional — defaults to empty and must not block boot
+    expect(env.NVIDIA_API_KEY).toBe("");
   });
 });

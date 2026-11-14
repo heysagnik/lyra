@@ -7,6 +7,6 @@ process.env.BETTER_AUTH_URL = "http://localhost:3000";
 process.env.GOOGLE_CLIENT_ID = "";
 process.env.GOOGLE_CLIENT_SECRET = "";
 process.env.GROQ_API_KEY = "gsk_sample_groq_api_key_test_value";
-process.env.GROQ_MODEL_PRIMARY = "qwen/qwen3.8-27b";
+process.env.NVIDIA_API_KEY = "nvapi_sample_nim_api_key_test_value";
 process.env.TINYFISH_API_KEY = "tf_sample_tinyfish_key";
 process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";

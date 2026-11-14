@@ -15,7 +15,7 @@ const envSchema = z.object({
   GROQ_API_KEY: z
     .string({ required_error: "GROQ_API_KEY is required" })
     .min(1, "GROQ_API_KEY is required"),
-  GROQ_MODEL_PRIMARY: z.string().default("qwen/qwen3.8-27b"),
+  NVIDIA_API_KEY: z.string().optional().default(""),
   TINYFISH_API_KEY: z
     .string({ required_error: "TINYFISH_API_KEY is required" })
     .min(1, "TINYFISH_API_KEY is required"),
@@ -38,7 +38,7 @@ export function getEnv(): Env {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
-    GROQ_MODEL_PRIMARY: process.env.GROQ_MODEL_PRIMARY,
+    NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
     TINYFISH_API_KEY: process.env.TINYFISH_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   });

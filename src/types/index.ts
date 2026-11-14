@@ -92,6 +92,7 @@ export interface TurnInput {
   model?: string;
   /** Effort tier controlling tool iterations and output ceiling. */
   effort?: "low" | "standard" | "max";
+  timeZone?: string;
 }
 
 export interface TurnFinishUsage {

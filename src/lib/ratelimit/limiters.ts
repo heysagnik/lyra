@@ -61,7 +61,7 @@ function decrementInFlight(userId: string): void {
 /**
  * Check rate limits directly against the Postgres usage_events table:
  * - 20 requests per minute (sliding window)
- * - 300 requests per day (UTC day ceiling)
+ * - 20 requests per day (UTC day ceiling)
  */
 async function checkUsageEventsRateLimit(
   userId: string

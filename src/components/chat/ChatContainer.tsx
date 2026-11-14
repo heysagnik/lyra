@@ -8,8 +8,8 @@ import { Sidebar } from "./Sidebar";
 import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
 import { Composer } from "./Composer";
-import { Toast } from "./Toast";
 import { ActionSheet } from "./ActionSheet";
+import toast from "react-hot-toast";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { useAgentChat } from "@/lib/api/use-agent-chat";
 import {
@@ -49,7 +49,6 @@ export function ChatContainer({
   useEffect(() => {
     setActiveId(initialConversationId);
   }, [initialConversationId]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<{
     text: string;
     search: boolean;
@@ -120,11 +119,31 @@ export function ChatContainer({
     }
   }, [isStreaming, activeId, queryClient]);
 
-  // Sync error to Toast
+  // Surface generation errors through the global toast (keeps the Retry action)
   useEffect(() => {
-    if (chatError) {
-      setErrorMessage(chatError.message || "An error occurred during generation");
-    }
+    if (!chatError) return;
+    const message = chatError.message || "An error occurred during generation";
+    toast.error(
+      lastFailedPrompt ? (
+        <span className="flex items-center gap-3">
+          <span className="max-w-[15rem] leading-relaxed">{message}</span>
+          <button
+            type="button"
+            onClick={() => {
+              toast.dismiss();
+              handleRetry();
+            }}
+            className="shrink-0 rounded border border-[var(--color-danger)]/50 px-2.5 py-1.5 text-xs font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger)]/10 active:scale-[0.96]"
+          >
+            Retry
+          </button>
+        </span>
+      ) : (
+        message
+      ),
+      { id: "chat-error", duration: 6000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatError]);
 
   // Mutations
@@ -135,6 +154,9 @@ export function ChatContainer({
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       void queryClient.invalidateQueries({ queryKey: ["conversation", activeId] });
     },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Could not rename conversation");
+    },
   });
 
   const deleteMutation = useMutation({
@@ -144,6 +166,9 @@ export function ChatContainer({
         setActiveId(undefined);
       }
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Could not delete conversation");
     },
   });
 
@@ -156,7 +181,6 @@ export function ChatContainer({
     setLastFailedPrompt({ text, search: true });
     setLastModel(model);
     setLastEffort(effort);
-    setErrorMessage(null);
     clearError();
     void sendMessage(text, true, model, effort);
   };
@@ -164,8 +188,7 @@ export function ChatContainer({
   const handleRegenerate = () => {
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (lastUser?.content) {
-      setErrorMessage(null);
-      clearError();
+        clearError();
       void sendMessage(lastUser.content, true, lastModel, lastEffort);
     }
   };
@@ -188,6 +211,11 @@ export function ChatContainer({
       isStreaming={isStreaming}
       onStop={stop}
       isModelLocked={!isEmpty || isStreaming}
+      lockedModel={
+        !isEmpty && !isStreaming
+          ? (activeConvData?.messages.find((m) => m.model)?.model ?? undefined)
+          : undefined
+      }
     />
   );
 
@@ -458,14 +486,6 @@ export function ChatContainer({
         )}
       </main>
 
-      {/* Error Toast */}
-      {errorMessage && (
-        <Toast
-          message={errorMessage}
-          onRetry={lastFailedPrompt ? handleRetry : undefined}
-          onDismiss={() => setErrorMessage(null)}
-        />
-      )}
     </div>
   );
 }

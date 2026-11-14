@@ -26,7 +26,7 @@ vi.mock("ai", async (importOriginal) => {
 describe("LLM Adapter", () => {
   it("resolves primary model with configured model name", () => {
     const primary = getLanguageModel();
-    expect(primary.modelName).toBe("qwen/qwen3.8-27b");
+    expect(primary.modelName).toBe("nvidia/nemotron-3.5-bolt-e4b");
     expect(primary.model).toBeDefined();
   });
 

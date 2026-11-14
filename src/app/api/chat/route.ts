@@ -9,6 +9,7 @@ const chatRequestBodySchema = z.object({
   search: z.boolean().optional(),
   model: z.string().optional(),
   effort: z.enum(["low", "standard", "max"]).optional(),
+  timeZone: z.string().min(1).max(64).optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
         search: parsed.data.search,
         model: parsed.data.model,
         effort: parsed.data.effort,
+        timeZone: parsed.data.timeZone,
       },
     });
   } catch {

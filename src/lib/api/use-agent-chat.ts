@@ -156,18 +156,29 @@ export function useAgentChat({
       setCurrentSources([]);
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
 
-      await rawSendMessage(
-        { text },
-        {
-          body: {
-            conversationId: activeConversationId,
-            message: text,
-            search,
-            ...(modelOverride ? { model: modelOverride } : {}),
-            ...(effortOverride ? { effort: effortOverride } : {}),
-          },
-        }
-      );
+      const sentAt = new Date();
+      try {
+        await rawSendMessage(
+          { text },
+          {
+            body: {
+              conversationId: activeConversationId,
+              message: text,
+              search,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              ...(modelOverride ? { model: modelOverride } : {}),
+              ...(effortOverride ? { effort: effortOverride } : {}),
+            },
+          }
+        );
+      } finally {
+        setMessages((prev) => {
+          const stamped = (prev as unknown as AgentChatMessage[]).map((m) =>
+            m.createdAt ? m : { ...m, createdAt: sentAt }
+          );
+          return stamped as unknown as typeof prev;
+        });
+      }
     },
     [rawSendMessage, activeConversationId, searchDefault, currentSources, setMessages]
   );
@@ -239,6 +250,7 @@ export function useAgentChat({
         parts,
         sources: finalSources,
         toolCalls: toolCalls && (toolCalls as unknown[]).length > 0 ? toolCalls : undefined,
+        createdAt: (m as unknown as AgentChatMessage).createdAt,
       };
     });
   }, [messages, currentSources, sourcesByMsgId]);

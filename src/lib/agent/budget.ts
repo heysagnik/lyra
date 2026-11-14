@@ -39,7 +39,7 @@ export const SEARCH_TIMEOUT_MS = 8000;
 
 export const RATE_PER_MIN = 20;
 
-export const RATE_PER_DAY = 300;
+export const RATE_PER_DAY = 20;
 
 /**
  * Groq free-tier Output Tokens Per Minute (OTPM) ceilings per model, per

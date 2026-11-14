@@ -1,8 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowUpIcon, SquareIcon, CaretDownIcon, CheckIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
+import {
+  ArrowUpIcon,
+  SquareIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  CheckIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { REGISTERED_MODELS } from "@/lib/llm/models";
+import toast from "react-hot-toast";
 
 export interface ComposerProps {
   onSend: (
@@ -15,6 +25,8 @@ export interface ComposerProps {
   onStop: () => void;
   retryAfterSeconds?: number;
   isModelLocked?: boolean;
+  /** Model recorded on the locked conversation, shown while switching is disabled. */
+  lockedModel?: string | null;
 }
 
 const MODEL_STORAGE_KEY = "lyra-model";
@@ -48,28 +60,46 @@ export function Composer({
   onStop,
   retryAfterSeconds,
   isModelLocked = false,
+  lockedModel,
 }: ComposerProps) {
   const [text, setText] = useState("");
   const [countdown, setCountdown] = useState<number | undefined>(retryAfterSeconds);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [model, setModel] = useState<string>("primary");
+  const [modelQuery, setModelQuery] = useState("");
+  const [model, setModel] = useState<string>(() => {
+    // Restore the last-used model synchronously so the trigger never flashes
+    // the default. Stale ids from removed models fall back to the default.
+    try {
+      const saved = localStorage.getItem(MODEL_STORAGE_KEY);
+      if (saved) {
+        if (REGISTERED_MODELS.some((m) => m.id === saved || m.modelId === saved)) {
+          return saved;
+        }
+        if (saved === "primary" || saved === "fallback") {
+          const def = REGISTERED_MODELS.find((m) => m.isDefaultPrimary);
+          if (def) return def.id;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return "primary";
+  });
   const [effort, setEffort] = useState<EffortLevel>("standard");
   const [attachments, setAttachments] = useState<
     { name: string; content: string; size?: number }[]
   >([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [attachError, setAttachError] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
-    setAttachError(null);
     const next = [...attachments];
     for (const file of Array.from(files)) {
       if (!ATTACHABLE_TYPES.test(file.type) && !/\.(txt|md|json|csv|ya?ml|tsx?|jsx?|py|sql|css|html?)$/i.test(file.name)) {
-        setAttachError(`“${file.name}” is not a text file — only text, code, and data files can be attached.`);
+        toast.error(`“${file.name}” is not a text file — only text, code, and data files can be attached.`);
         continue;
       }
       if (next.some((a) => a.name === file.name)) continue;
@@ -83,7 +113,7 @@ export function Composer({
               reader.readAsText(file);
             });
       if (content.length > MAX_ATTACH_CHARS) {
-        setAttachError(`“${file.name}” is too large to attach (over ~50 KB).`);
+        toast.error(`“${file.name}” is too large to attach (over ~50 KB).`);
         continue;
       }
       next.push({ name: file.name, content, size: file.size });
@@ -91,18 +121,9 @@ export function Composer({
     setAttachments(next);
   };
 
-  // Restore persisted model and effort choices
+  // Restore persisted effort; model is restored synchronously in useState
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(MODEL_STORAGE_KEY);
-      if (saved) {
-        const found =
-          REGISTERED_MODELS.find((m) => m.id === saved || m.modelId === saved) ||
-          (saved === "primary" || saved === "fallback" ? REGISTERED_MODELS.find((m) => m.isDefaultPrimary) : undefined);
-        if (found) {
-          setModel(saved);
-        }
-      }
       const savedEffort = localStorage.getItem(EFFORT_STORAGE_KEY);
       if (savedEffort === "low" || savedEffort === "standard" || savedEffort === "max") {
         setEffort(savedEffort);
@@ -111,6 +132,16 @@ export function Composer({
       // ignore
     }
   }, []);
+
+  // While a conversation locks the model, display the model that conversation
+  // was created with (its first message records it) instead of the global pick.
+  useEffect(() => {
+    if (!isModelLocked || !lockedModel) return;
+    const found = REGISTERED_MODELS.find(
+      (m) => m.id === lockedModel || m.modelId === lockedModel
+    );
+    if (found) setModel(found.id);
+  }, [isModelLocked, lockedModel]);
 
   const handleEffortChange = (nextEffort: EffortLevel) => {
     setEffort(nextEffort);
@@ -198,7 +229,15 @@ export function Composer({
       m.modelId === model ||
       ((model === "primary" || model === "fallback") && m.isDefaultPrimary)
   );
-  const modelLabel = activeModel?.label ?? "Qwen 3.8 27B";
+  const modelLabel = activeModel?.label ?? "Nemotron 3.5 Bolt E4B";
+
+  // All models in one flat list, in registry order
+  const trimmedQuery = modelQuery.trim().toLowerCase();
+  const visibleModels = trimmedQuery
+    ? REGISTERED_MODELS.filter((m) =>
+        `${m.label} ${m.modelId} ${m.description}`.toLowerCase().includes(trimmedQuery)
+      )
+    : REGISTERED_MODELS;
 
   return (
     <div className="w-full">
@@ -259,11 +298,6 @@ export function Composer({
             })}
           </div>
         )}
-        {attachError && (
-          <p role="alert" className="px-5 pt-2 text-xs text-[var(--color-danger)]">
-            {attachError}
-          </p>
-        )}
 
         <textarea
           ref={textareaRef}
@@ -316,7 +350,10 @@ export function Composer({
                     ? "Choose effort (model locked)"
                     : "Choose model"
                 }
-                onClick={() => setPickerOpen(!pickerOpen)}
+                onClick={() => {
+                  setPickerOpen(!pickerOpen);
+                  if (!pickerOpen) setModelQuery("");
+                }}
                 className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
               >
                 <span className="font-medium text-xs sm:text-sm">{modelLabel}</span>
@@ -333,11 +370,55 @@ export function Composer({
               </button>
 
               {pickerOpen && (
-                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-60 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2 shadow-[var(--shadow-popover)]">
+                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-72 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-popover)]">
                   {!isModelLocked && (
-                  <div>
+                  <>
+                  {/* Search header */}
+                  <div className="flex items-center gap-2 border-b border-[var(--color-border)]/60 px-3 py-2.5">
+                    <MagnifyingGlassIcon
+                      aria-hidden
+                      className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
+                    />
+                    <input
+                      type="text"
+                      value={modelQuery}
+                      onChange={(e) => setModelQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          e.stopPropagation();
+                          setModelQuery("");
+                        }
+                      }}
+                      placeholder="Search models"
+                      aria-label="Search models"
+                      autoFocus
+                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-tertiary)]"
+                    />
+                    <button
+                      type="button"
+                      title="Reset to default model"
+                      aria-label="Reset to default model"
+                      onClick={() => {
+                        const def = REGISTERED_MODELS.find((m) => m.isDefaultPrimary);
+                        if (def) {
+                          setModel(def.id);
+                          try {
+                            localStorage.setItem(MODEL_STORAGE_KEY, def.modelId);
+                          } catch {
+                            // ignore
+                          }
+                        }
+                      }}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
+                    >
+                      <PlusIcon aria-hidden className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Scrollable model list */}
+                  <div className="max-h-[17rem] overflow-y-auto p-2">
                   <div role="listbox" aria-label="Model" className="space-y-0.5">
-                    {REGISTERED_MODELS.map((m) => {
+                    {visibleModels.map((m) => {
                       const selected =
                         m.id === model ||
                         m.modelId === model ||
@@ -353,13 +434,15 @@ export function Composer({
                             if (isModelLocked) return;
                             setModel(m.id);
                             try {
-                              localStorage.setItem(MODEL_STORAGE_KEY, m.id);
+                              // Persist the stable wire id so a registry
+                              // refactor can never orphan the saved choice.
+                              localStorage.setItem(MODEL_STORAGE_KEY, m.modelId);
                             } catch {
                               // ignore
                             }
                             setPickerOpen(false);
                           }}
-                          className={`flex w-full items-center justify-between rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-xs sm:text-[13px] transition-colors duration-[var(--duration-fast)] ${
+                          className={`flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left transition-colors duration-[var(--duration-fast)] ${
                             isModelLocked
                               ? selected
                                 ? "bg-[var(--color-surface-2)] font-medium text-[var(--color-text)] cursor-not-allowed"
@@ -369,26 +452,39 @@ export function Composer({
                               : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
                           }`}
                         >
-                          <span className="truncate">{m.label}</span>
-                          {selected && (
+                          <span className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">
+                            {m.label}
+                          </span>
+                          {selected ? (
                             <CheckIcon
                               aria-hidden
                               className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]"
                             />
-                          )}
+                          ) : m.isDefaultPrimary ? (
+                            <span className="flex shrink-0 items-center gap-0.5 text-xs text-[var(--color-text-tertiary)]">
+                              Default
+                              <CaretRightIcon aria-hidden className="h-3 w-3" />
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
+                    {visibleModels.length === 0 && (
+                      <div className="px-2.5 py-3 text-[13px] text-[var(--color-text-tertiary)]">
+                        No models match “{modelQuery.trim()}”
+                      </div>
+                    )}
                   </div>
-
-                  {/* Divider */}
-                  <div className="my-2 h-px bg-[var(--color-border)]/60" />
                   </div>
+                  </>
                   )}
 
+                  {/* Divider */}
+                  <div className="h-px bg-[var(--color-border)]/60" />
+
                   {/* Effort Slider section */}
-                  <div className="px-0.5 pb-0.5">
-                    <div className="flex items-center gap-1.5 px-1 pb-1.5 text-xs text-[var(--color-text-secondary)]">
+                  <div className="px-3 pb-3 pt-2">
+                    <div className="flex items-center gap-1.5 pb-2 text-xs text-[var(--color-text-secondary)]">
                       <span>Effort</span>
                       <span className="font-semibold text-[var(--color-text)]">
                         {EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium"}
@@ -442,7 +538,7 @@ export function Composer({
                       <span className="pointer-events-none absolute left-1/2 top-1/2 h-2.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-text-tertiary)]/60" />
                       <span className="pointer-events-none absolute right-[20px] top-1/2 h-2.5 w-[2px] translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-text-tertiary)]/60" />
 
-                      {/* Active knob — darker pill riding the fill edge */}
+                      {/* Active knob — canvas pill riding the fill edge */}
                       <div
                         aria-hidden
                         className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-canvas)] transition-[left] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.97]"

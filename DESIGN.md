@@ -131,7 +131,7 @@ sequenceDiagram
     Auth-->>API: Valid Session User
 
     API->>Rate: checkRateLimits(userId)
-    Note over Rate: 1. Sliding window (20/min via usage_events)<br/>2. Daily quota (300/day via usage_events)<br/>3. In-flight lease cap (max 2 active)
+    Note over Rate: 1. Sliding window (20/min via usage_events)<br/>2. Daily quota (20/day via usage_events)<br/>3. In-flight lease cap (max 2 active)
     Rate-->>API: Gate Passed + acquire lease
 
     API->>DB: Get/Create Conversation & Record User Message
@@ -196,7 +196,7 @@ Rather than introducing Redis clusters and extra network hops, Lyra leverages th
 
 ### 1. Sliding Window & Daily Quotas (Postgres Native)
 
-A single SQL query evaluates both the 1-minute sliding window (20 requests) and the daily UTC ceiling (300 requests) using conditional aggregation:
+A single SQL query evaluates both the 1-minute sliding window (20 requests) and the daily UTC ceiling (20 requests) using conditional aggregation:
 
 ```sql
 SELECT
@@ -500,7 +500,7 @@ export const MAX_TOKENS_OUT = 1024;        // Generation token ceiling (standard
 export const SEARCH_CACHE_TTL_S = 300;     // 5-minute search cache TTL
 export const SEARCH_TIMEOUT_MS = 8000;     // 8-second search abort timeout
 export const RATE_PER_MIN = 20;            // 20 requests/minute sliding window
-export const RATE_PER_DAY = 300;           // 300 requests/day quota
+export const RATE_PER_DAY = 20;            // 20 requests/day quota
 export const MAX_INFLIGHT = 2;             // 2 concurrent turns per user
 export const TARGET_PROMPT_TOKENS = 2600;  // Expected prompt token target ceiling
 ```

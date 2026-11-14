@@ -21,8 +21,19 @@ function relativeTime(date: Date): string {
   if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+function formatShort(date: Date): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
@@ -62,15 +73,6 @@ export function MessageBubble({
         <div className="max-w-[85%] rounded-2xl bg-[var(--color-surface-3)] px-4 py-2.5 text-sm leading-relaxed text-[var(--color-text)] break-words">
           {message.content}
         </div>
-        {createdAt && (
-          <time
-            dateTime={createdAt.toISOString()}
-            title={formatFull(createdAt)}
-            className="font-coordinate mt-1 mr-1 text-[11px] text-[var(--color-text-tertiary)] tabular-nums"
-          >
-            {mounted ? relativeTime(createdAt) : formatFull(createdAt)}
-          </time>
-        )}
       </div>
     );
   }
@@ -157,13 +159,13 @@ export function MessageBubble({
               <ArrowsClockwiseIcon aria-hidden className="h-3.5 w-3.5" />
             </button>
           )}
-          {createdAt && (
+          {createdAt && mounted && (
             <time
               dateTime={createdAt.toISOString()}
               title={formatFull(createdAt)}
               className="font-coordinate ml-1 text-[11px] text-[var(--color-text-tertiary)] tabular-nums"
             >
-              {mounted ? relativeTime(createdAt) : formatFull(createdAt)}
+              {isToday(createdAt) ? relativeTime(createdAt) : formatShort(createdAt)}
             </time>
           )}
         </div>

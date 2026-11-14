@@ -2,7 +2,7 @@ import { generateText, generateObject } from "ai";
 import { z } from "zod";
 import { getLanguageModel } from "@/lib/llm/provider";
 
-export { getGroqProvider, getLanguageModel } from "@/lib/llm/provider";
+export { getGroqProvider, getNvidiaNimProvider, getLanguageModel } from "@/lib/llm/provider";
 
 export async function generateSummaryWithLlm(
   prompt: string,

@@ -62,7 +62,6 @@ GOOGLE_CLIENT_SECRET=""
 
 # Groq LPU Inference
 GROQ_API_KEY="gsk_..."
-GROQ_MODEL_PRIMARY="qwen/qwen3.8-27b"
 
 # TinyFish Search
 TINYFISH_API_KEY="tf_..."

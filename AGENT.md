@@ -52,7 +52,7 @@ Non-goals for v1: multi-tool agents, file uploads, voice, team features, self-ho
 | Agent runtime | **Vercel AI SDK** (`ai` v5: `streamText`, `stopWhen`, `createUIMessageStream`) | Multi-step tool loop, SSE wire protocol, lease guarantees |
 | Web search | **TinyFish TinySearch** (REST) | Structured JSON results; in-memory LRU/TTL bounded cache (500 items, 300s TTL) |
 | Database | **Neon Postgres** (`@neondatabase/serverless`) | Single source of truth for chat, memory, rate limits, and audit logs |
-| Rate limiting | **Postgres Native** (`usage_events` indexed queries) + **In-Flight Leases** | Zero-Redis sliding window (20/min, 300/day) + in-memory concurrency lease (max 2 active) with 120s auto-recovery |
+| Rate limiting | **Postgres Native** (`usage_events` indexed queries) + **In-Flight Leases** | Zero-Redis sliding window (20/min, 20/day) + in-memory concurrency lease (max 2 active) with 120s auto-recovery |
 | Background tasks | **In-Process Microtasks** (`queueMicrotask`) | Non-blocking execution for `executeDistillTask` and `executeSummarizeTask`; zero external worker attack surface |
 | UI runtime | **React 19** (`19.3.1`), **AI SDK `useChat`** (via `src/lib/api/use-agent-chat.ts` wrapper), TanStack Query, `react-markdown` + `remark-gfm` + `rehype-highlight` + `rehype-sanitize` | Transport-based `useChat`; components never import `ai` directly |
 | Styling | **Tailwind CSS v4** + shadcn/ui primitives | Clean minimal light theme with CSS variable tokens |
@@ -101,7 +101,7 @@ Two planes. The user-facing stream never goes through a queue; side-effect tasks
 | # | Step | Budget | Fail Behavior |
 |---|---|---|---|
 | ① | Session check (Better Auth) | ~5 ms | 401 Unauthorized |
-| ② | Rate limiters: per-min (20), per-day (300) via `usage_events` + in-flight lease (2) | ~2–10 ms | 429 + `Retry-After` header |
+| ② | Rate limiters: per-min (20), per-day (20) via `usage_events` + in-flight lease (2) | ~2–10 ms | 429 + `Retry-After` header |
 | ③ | Assemble prompt T0–T3 (1 summary read + 10-row message scan + memories) | ~10–25 ms | 500 Internal Error |
 | ④ | `streamText` step 1 (decision & tool call) | TTFT ~200–250 ms | SDK `maxRetries` → `error` part |
 | ⑤ | Tool `execute` → TinySearch (8s timeout, 1 retry, 5-min in-memory cache) | ~2 ms (cached) / ~2.5s (cold) | Degrade: answer without search |
@@ -329,7 +329,6 @@ All variables validated at boot via `src/lib/env.ts` (Zod schema):
 | `BETTER_AUTH_URL` | Server | Base URL for auth callbacks |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Server | OAuth credentials (optional in dev) |
 | `GROQ_API_KEY` | Server | Groq LPU inference key |
-| `GROQ_MODEL_PRIMARY` | Server | Primary model ID (default: `qwen/qwen3.8-27b`) |
 | `TINYFISH_API_KEY` | Server | TinySearch API key |
 | `NEXT_PUBLIC_APP_URL` | Client | Canonical application URL |
 

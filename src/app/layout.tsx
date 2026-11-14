@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeInitializer } from "@/components/providers/ThemeInitializer";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 
 const inter = localFont({
   src: "./fonts/InterVariable.woff2",
@@ -41,7 +42,9 @@ export default function RootLayout({
       <ThemeInitializer />
       <body className="h-full min-h-full antialiased overscroll-none">
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );
