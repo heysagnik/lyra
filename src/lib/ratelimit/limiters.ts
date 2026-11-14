@@ -1,9 +1,10 @@
 import { sql, and, eq, gte } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { usageEvents } from "@/lib/db/schema";
+import { getUserPlan } from "@/lib/db/queries/users";
 import {
   RATE_PER_MIN,
-  RATE_PER_DAY,
+  resolveDailyRate,
   MAX_INFLIGHT,
   MODEL_OTPM_LIMITS,
   OTPM_SAFETY_MARGIN,
@@ -88,6 +89,9 @@ async function checkUsageEventsRateLimit(
 
     const turnsInMin = row?.countMin ?? 0;
     const turnsInDay = row?.countDay ?? 0;
+    // Daily ceiling scales with the user's plan tier (free: 20, pro: 300)
+    const plan = await getUserPlan(userId);
+    const dailyLimit = resolveDailyRate(plan);
 
     if (turnsInMin >= RATE_PER_MIN) {
       const oldest = row?.oldestInMin ? new Date(row.oldestInMin).getTime() : Date.now();
@@ -95,7 +99,7 @@ async function checkUsageEventsRateLimit(
       return { ok: false, retryAfter };
     }
 
-    if (turnsInDay >= RATE_PER_DAY) {
+    if (turnsInDay >= dailyLimit) {
       const nextDay = new Date(startOfDay.getTime() + 86400 * 1000).getTime();
       const retryAfter = Math.max(1, Math.ceil((nextDay - Date.now()) / 1000));
       return { ok: false, retryAfter };

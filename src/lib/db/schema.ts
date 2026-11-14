@@ -25,6 +25,8 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  /** Billing tier: "free" (default) or "pro"; changed server-side only. */
+  plan: text("plan").notNull().default("free"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -174,6 +176,9 @@ export const usageEvents = pgTable(
   },
   (table) => [
     index("usage_events_user_created_idx").on(table.userId, table.createdAt.desc()),
+    // Powers the per-model rolling OTPM sum (sumRecentOutputTokens); without
+    // it every turn scans the whole table on (model, created_at).
+    index("usage_events_model_created_idx").on(table.model, table.createdAt.desc()),
   ]
 );
 

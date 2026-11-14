@@ -11,6 +11,8 @@ import {
   SEARCH_TIMEOUT_MS,
   RATE_PER_MIN,
   RATE_PER_DAY,
+  PLAN_DAILY_RATE,
+  resolveDailyRate,
   MAX_INFLIGHT,
   TARGET_PROMPT_TOKENS,
 } from "./budget";
@@ -37,7 +39,16 @@ describe("System Budgets & Limits", () => {
     expect(SEARCH_CACHE_TTL_S).toBe(300);
     expect(SEARCH_TIMEOUT_MS).toBe(8000);
     expect(RATE_PER_MIN).toBe(20);
-    expect(RATE_PER_DAY).toBe(300);
     expect(MAX_INFLIGHT).toBe(2);
+  });
+
+  it("resolves the daily rate per plan tier", () => {
+    expect(PLAN_DAILY_RATE.free).toBe(20);
+    expect(PLAN_DAILY_RATE.pro).toBe(300);
+    expect(resolveDailyRate("free")).toBe(20);
+    expect(resolveDailyRate("pro")).toBe(300);
+    // Unknown or missing plans never exceed the free tier
+    expect(resolveDailyRate(null)).toBe(20);
+    expect(resolveDailyRate("enterprise")).toBe(20);
   });
 });

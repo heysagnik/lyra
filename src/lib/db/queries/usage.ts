@@ -1,10 +1,12 @@
 import { sql, gte, desc, eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { usageEvents, jobFailures } from "@/lib/db/schema";
-import { RATE_PER_DAY, RATE_PER_MIN, MAX_INFLIGHT } from "@/lib/agent/budget";
+import { RATE_PER_MIN, MAX_INFLIGHT, resolveDailyRate } from "@/lib/agent/budget";
+import { getUserPlan } from "@/lib/db/queries/users";
 import type { UsageEvent, JobFailure } from "@/types";
 
 export interface UserUsageStats {
+  plan: "free" | "pro";
   today: {
     turns: number;
     tokensIn: number;
@@ -182,8 +184,10 @@ export async function getUserUsageStats(userId: string): Promise<UserUsageStats>
   const tokensInToday = todayAgg[0]?.tokensIn ?? 0;
   const tokensOutToday = todayAgg[0]?.tokensOut ?? 0;
   const costUsdToday = parseFloat(todayAgg[0]?.costUsd ?? "0");
-  const remainingDailyTurns = Math.max(0, RATE_PER_DAY - turnsToday);
-  const percentUsed = Math.min(100, Math.round((turnsToday / RATE_PER_DAY) * 100));
+  const plan = await getUserPlan(userId);
+  const dailyLimit = resolveDailyRate(plan);
+  const remainingDailyTurns = Math.max(0, dailyLimit - turnsToday);
+  const percentUsed = Math.min(100, Math.round((turnsToday / dailyLimit) * 100));
 
   const recentRows = await db
     .select()
@@ -193,18 +197,19 @@ export async function getUserUsageStats(userId: string): Promise<UserUsageStats>
     .limit(20);
 
   return {
+    plan,
     today: {
       turns: turnsToday,
       tokensIn: tokensInToday,
       tokensOut: tokensOutToday,
       costUsd: costUsdToday,
       remainingDailyTurns,
-      dailyLimit: RATE_PER_DAY,
+      dailyLimit,
       percentUsed,
     },
     rateLimits: {
       perMinute: RATE_PER_MIN,
-      perDay: RATE_PER_DAY,
+      perDay: dailyLimit,
       maxInflight: MAX_INFLIGHT,
     },
     recentEvents: recentRows.map((r) => ({

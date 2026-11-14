@@ -1,0 +1,1 @@
+CREATE INDEX "usage_events_model_created_idx" ON "usage_events" USING btree ("model","created_at" DESC NULLS LAST);

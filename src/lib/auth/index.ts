@@ -23,6 +23,15 @@ function initAuth() {
     emailAndPassword: {
       enabled: true,
     },
+    user: {
+      additionalFields: {
+        plan: {
+          type: "string",
+          input: false, // never settable from client requests
+          defaultValue: "free",
+        },
+      },
+    },
     socialProviders:
       env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
         ? {

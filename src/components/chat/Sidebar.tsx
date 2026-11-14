@@ -42,6 +42,10 @@ export function Sidebar({
   const router = useRouter();
   const { data: session } = useSession();
   const name = session?.user?.name;
+  const plan =
+    (session?.user as { plan?: string } | undefined)?.plan === "pro"
+      ? "pro"
+      : "free";
   const initial = (name?.trim()?.[0] ?? "L").toUpperCase();
 
   // Global shortcuts: Ctrl+K starts a new chat, Ctrl+Shift+, opens settings
@@ -179,7 +183,16 @@ export function Sidebar({
               </span>
             </Link>
 
-            
+            <span
+              title={plan === "pro" ? "Pro plan — 300 turns/day" : "Free plan — 20 turns/day"}
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                plan === "pro"
+                  ? "border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-tertiary)]"
+              }`}
+            >
+              {plan === "pro" ? "Pro" : "Free"}
+            </span>
           </div>
         </div>
       </aside>

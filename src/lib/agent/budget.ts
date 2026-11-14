@@ -39,7 +39,21 @@ export const SEARCH_TIMEOUT_MS = 8000;
 
 export const RATE_PER_MIN = 20;
 
-export const RATE_PER_DAY = 20;
+/** Daily turn quota per plan tier. */
+export type PlanTier = "free" | "pro";
+
+export const PLAN_DAILY_RATE: Record<PlanTier, number> = {
+  free: 20,
+  pro: 300,
+};
+
+/** Daily quota for a plan tier (falls back to the free tier). */
+export function resolveDailyRate(plan?: string | null): number {
+  return PLAN_DAILY_RATE[(plan as PlanTier) in PLAN_DAILY_RATE ? (plan as PlanTier) : "free"];
+}
+
+/** Free-tier default, kept for existing call sites and tests. */
+export const RATE_PER_DAY = PLAN_DAILY_RATE.free;
 
 /**
  * Groq free-tier Output Tokens Per Minute (OTPM) ceilings per model, per

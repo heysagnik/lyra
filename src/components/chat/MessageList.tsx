@@ -76,7 +76,9 @@ export function MessageList({
     const isNearBottom = distanceFromBottom < 100;
 
     isUserScrollingRef.current = !isNearBottom;
-    setShowScrollBottomPill(!isNearBottom);
+    // Show the pill only after the user has scrolled up roughly 3–4
+    // conversation turns (~1200px) — small upward drifts keep it hidden.
+    setShowScrollBottomPill(distanceFromBottom > 1200);
   };
 
   const firstMessageIdRef = useRef<string | null>(null);

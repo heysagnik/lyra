@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import * as dbModule from "@/lib/db";
+
+vi.mock("@/lib/db/queries/users", () => ({
+  getUserPlan: vi.fn().mockResolvedValue("pro"),
+}));
+
 import {
   recordUsageEvent,
   recordJobFailure,
@@ -188,6 +193,7 @@ describe("Usage and Failure Queries", () => {
     expect(stats.today.dailyLimit).toBe(300);
     expect(stats.today.remainingDailyTurns).toBe(285);
     expect(stats.today.percentUsed).toBe(5);
+    expect(stats.plan).toBe("pro");
     expect(stats.rateLimits.perMinute).toBe(20);
     expect(stats.rateLimits.perDay).toBe(300);
     expect(stats.recentEvents).toHaveLength(1);

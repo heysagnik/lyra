@@ -386,6 +386,16 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             finalText = await streamResult.text;
           } catch {}
 
+          // ─── Citation token normalization ──────────────────────────
+          // Some models (Nemotron/GPT-lineage trained on OpenAI browsing
+          // data) regress to the internal 【7†L1-L3】 token format instead
+          // of plain ASCII [7]. Normalize before the rescue detector and
+          // before the text is streamed/persisted, so citation chips link.
+          finalText = finalText
+            .replace(/[【\[]?(\d+)†[^】\]]*[】\]]/g, "[$1]")
+            // Standalone 【7】 with no line-range marker
+            .replace(/【(\d+)】/g, "[$1]");
+
           // ─── Incomplete-answer detection + rescue pass ───────────────
           // The ReAct loop can end with visible text that is NOT an answer:
           // the model narrates intent ("those results aren't relevant — let me

@@ -105,16 +105,21 @@ function CitationHoverCard({
  */
 export function linkifyCitations(text: string, sourcesCount: number): string {
   if (!text || sourcesCount <= 0) return text;
+  // Some models regress to the internal 【7†L1-L3】 citation token format;
+  // normalize to plain ASCII [7] before linkifying (skip code spans).
   const parts = text.split(/(```[\s\S]*?```|`[^`]*?`)/g);
   return parts
     .map((part, index) => {
       if (index % 2 === 1) return part;
-      const normalized = part.replace(/\[(\d+(?:\s*,\s*\d+)+)\]/g, (_, nums) => {
-        return nums
-          .split(",")
-          .map((n: string) => `[${n.trim()}]`)
-          .join("");
-      });
+      const normalized = part
+        .replace(/[【\[]?(\d+)†[^】\]]*[】\]]/g, "[$1]")
+        .replace(/【(\d+)】/g, "[$1]")
+        .replace(/\[(\d+(?:\s*,\s*\d+)+)\]/g, (_, nums) => {
+          return nums
+            .split(",")
+            .map((n: string) => `[${n.trim()}]`)
+            .join("");
+        });
       return normalized.replace(/\[(\d+)\](?!\()/g, (match, numStr) => {
         const num = parseInt(numStr, 10);
         if (num >= 1 && num <= sourcesCount) {
