@@ -7,7 +7,6 @@ import {
   CaretDownIcon,
   CaretRightIcon,
   CheckIcon,
-  MagnifyingGlassIcon,
   PlusIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -65,7 +64,6 @@ export function Composer({
   const [text, setText] = useState("");
   const [countdown, setCountdown] = useState<number | undefined>(retryAfterSeconds);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [modelQuery, setModelQuery] = useState("");
   const [model, setModel] = useState<string>(() => {
     // Restore the last-used model synchronously so the trigger never flashes
     // the default. Stale ids from removed models fall back to the default.
@@ -231,14 +229,6 @@ export function Composer({
   );
   const modelLabel = activeModel?.label ?? "Nemotron 3.5 Bolt E4B";
 
-  // All models in one flat list, in registry order
-  const trimmedQuery = modelQuery.trim().toLowerCase();
-  const visibleModels = trimmedQuery
-    ? REGISTERED_MODELS.filter((m) =>
-        `${m.label} ${m.modelId} ${m.description}`.toLowerCase().includes(trimmedQuery)
-      )
-    : REGISTERED_MODELS;
-
   return (
     <div className="w-full">
       <div
@@ -333,7 +323,7 @@ export function Composer({
             aria-label="Attach files"
             title="Attach text, code, or data files"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-[color,border-color,transform] duration-[var(--duration-normal)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)] active:scale-[0.96]"
+            className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-[color,border-color,transform] duration-[var(--duration-normal)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)] active:scale-[0.96]"
           >
             <PlusIcon className="h-4 w-4" />
           </button>
@@ -352,7 +342,6 @@ export function Composer({
                 }
                 onClick={() => {
                   setPickerOpen(!pickerOpen);
-                  if (!pickerOpen) setModelQuery("");
                 }}
                 className="flex items-center gap-1 rounded-[var(--radius-lg)] px-1.5 py-1 text-sm text-[var(--color-text)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
               >
@@ -370,55 +359,13 @@ export function Composer({
               </button>
 
               {pickerOpen && (
-                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-72 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-[var(--shadow-popover)]">
+                <div className="popover-in-up absolute bottom-full right-0 z-30 mb-2 w-60 sm:w-72 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-1.5 shadow-[var(--shadow-popover)] sm:p-2">
                   {!isModelLocked && (
                   <>
-                  {/* Search header */}
-                  <div className="flex items-center gap-2 border-b border-[var(--color-border)]/60 px-3 py-2.5">
-                    <MagnifyingGlassIcon
-                      aria-hidden
-                      className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
-                    />
-                    <input
-                      type="text"
-                      value={modelQuery}
-                      onChange={(e) => setModelQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          e.stopPropagation();
-                          setModelQuery("");
-                        }
-                      }}
-                      placeholder="Search models"
-                      aria-label="Search models"
-                      autoFocus
-                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-tertiary)]"
-                    />
-                    <button
-                      type="button"
-                      title="Reset to default model"
-                      aria-label="Reset to default model"
-                      onClick={() => {
-                        const def = REGISTERED_MODELS.find((m) => m.isDefaultPrimary);
-                        if (def) {
-                          setModel(def.id);
-                          try {
-                            localStorage.setItem(MODEL_STORAGE_KEY, def.modelId);
-                          } catch {
-                            // ignore
-                          }
-                        }
-                      }}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
-                    >
-                      <PlusIcon aria-hidden className="h-4 w-4" />
-                    </button>
-                  </div>
-
                   {/* Scrollable model list */}
-                  <div className="max-h-[17rem] overflow-y-auto p-2">
+                  <div className="max-h-[15rem] overflow-y-auto sm:max-h-[17rem]">
                   <div role="listbox" aria-label="Model" className="space-y-0.5">
-                    {visibleModels.map((m) => {
+                    {REGISTERED_MODELS.map((m) => {
                       const selected =
                         m.id === model ||
                         m.modelId === model ||
@@ -442,7 +389,7 @@ export function Composer({
                             }
                             setPickerOpen(false);
                           }}
-                          className={`flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left transition-colors duration-[var(--duration-fast)] ${
+                          className={`flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2 py-1 sm:px-2.5 sm:py-1.5 text-left transition-colors duration-[var(--duration-fast)] ${
                             isModelLocked
                               ? selected
                                 ? "bg-[var(--color-surface-2)] font-medium text-[var(--color-text)] cursor-not-allowed"
@@ -452,7 +399,7 @@ export function Composer({
                               : "text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] hover:text-[var(--color-text)]"
                           }`}
                         >
-                          <span className="min-w-0 flex-1 truncate text-[13px] sm:text-sm">
+                          <span className="min-w-0 flex-1 truncate text-[12px] sm:text-[13px] md:text-sm">
                             {m.label}
                           </span>
                           {selected ? (
@@ -469,11 +416,6 @@ export function Composer({
                         </button>
                       );
                     })}
-                    {visibleModels.length === 0 && (
-                      <div className="px-2.5 py-3 text-[13px] text-[var(--color-text-tertiary)]">
-                        No models match “{modelQuery.trim()}”
-                      </div>
-                    )}
                   </div>
                   </div>
                   </>
@@ -580,7 +522,7 @@ export function Composer({
                 type="button"
                 onClick={onStop}
                 aria-label="Stop generating"
-                className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
+                className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
               >
                 <SquareIcon className="h-2.5 w-2.5 fill-current" />
               </button>
@@ -590,7 +532,7 @@ export function Composer({
                 onClick={handleSubmit}
                 disabled={!canSend}
                 aria-label="Send message"
-                className={`flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center rounded-full transition-[background-color,color,transform,opacity] duration-[var(--duration-fast)] active:scale-[0.96] ${
+                className={`flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full transition-[background-color,color,transform,opacity] duration-[var(--duration-fast)] active:scale-[0.96] ${
                   canSend
                     ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
                     : "cursor-not-allowed bg-[var(--color-surface-3)] text-[var(--color-text-tertiary)]"
