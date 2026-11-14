@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CaretRightIcon, SignOutIcon, EnvelopeSimpleIcon } from "@phosphor-icons/react";
-import { signOut, useSession } from "@/lib/auth/client";
+import { signOut, useSession, revokeSession, revokeOtherSessions } from "@/lib/auth/client";
+import toast from "react-hot-toast";
 
 interface SessionRow {
   id: string;
+  token: string;
   userAgent?: string | null;
   createdAt: Date | string;
 }
@@ -88,34 +90,78 @@ export default function AccountSettingsPage() {
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [accounts, setAccounts] = useState<LinkedAccount[] | null>(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  // Current session's token, used to flag "This device"
+  const currentToken =
+    (session as unknown as { session?: { token?: string } } | undefined)?.session?.token;
+
+  const loadSessions = useCallback(async () => {
+    const sessionResult = await fetchJson("/api/auth/list-sessions");
+    setSessions(
+      sessionResult && Array.isArray(sessionResult)
+        ? (sessionResult as SessionRow[])
+        : null
+    );
+  }, []);
+
+  const loadAccounts = useCallback(async () => {
+    const accountResult = await fetchJson("/api/auth/list-accounts");
+    setAccounts(
+      accountResult && Array.isArray(accountResult)
+        ? (accountResult as LinkedAccount[])
+        : null
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [sessionResult, accountResult] = await Promise.allSettled([
-        fetchJson("/api/auth/list-sessions"),
-        fetchJson("/api/auth/list-accounts"),
+      const [sessionLoad, accountLoad] = await Promise.allSettled([
+        loadSessions(),
+        loadAccounts(),
       ]);
-
-      if (cancelled) return;
-
-      setSessions(
-        sessionResult.status === "fulfilled" && Array.isArray(sessionResult.value)
-          ? (sessionResult.value as SessionRow[])
-          : null
-      );
-      setAccounts(
-        accountResult.status === "fulfilled" && Array.isArray(accountResult.value)
-          ? (accountResult.value as LinkedAccount[])
-          : null
-      );
+      void sessionLoad;
+      void accountLoad;
+      void cancelled;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadSessions, loadAccounts]);
+
+  const handleRevoke = async (row: SessionRow) => {
+    setRevoking(row.id);
+    try {
+      await revokeSession({ token: row.token });
+      toast.success("Device signed out");
+      await loadSessions();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not sign out that device"
+      );
+    } finally {
+      setRevoking(null);
+    }
+  };
+
+  const handleRevokeOthers = async () => {
+    setRevoking("others");
+    try {
+      await revokeOtherSessions();
+      toast.success("All other devices signed out");
+      await loadSessions();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not sign out other devices"
+      );
+    } finally {
+      setRevoking(null);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -231,19 +277,55 @@ export default function AccountSettingsPage() {
                   No active devices.
                 </li>
               ) : (
-                sessions.map((row) => (
+                sessions.map((row) => {
+                  const isCurrent = row.token === currentToken;
+                  return (
                   <li
                     key={row.id}
                     className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] px-5 py-3 last:border-b-0"
                   >
-                    <span className="min-w-0 truncate text-sm text-[var(--color-text)]">
-                      {describeDevice(row.userAgent)}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate text-sm text-[var(--color-text)]">
+                        {describeDevice(row.userAgent)}
+                      </span>
+                      {isCurrent && (
+                        <span className="shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-tertiary)]">
+                          This device
+                        </span>
+                      )}
                     </span>
-                    <span className="shrink-0 text-xs text-[var(--color-text-tertiary)]">
-                      {formatDate(row.createdAt)}
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="text-xs text-[var(--color-text-tertiary)]">
+                        {formatDate(row.createdAt)}
+                      </span>
+                      {!isCurrent && (
+                        <button
+                          type="button"
+                          disabled={revoking !== null}
+                          onClick={() => void handleRevoke(row)}
+                          className="rounded-md border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {revoking === row.id ? "Signing out…" : "Sign out"}
+                        </button>
+                      )}
                     </span>
                   </li>
-                ))
+                  );
+                })
+              )}
+              {sessions !== null && sessions.length > 1 && (
+                <li className="border-t border-[var(--color-border)] px-5 py-3">
+                  <button
+                    type="button"
+                    disabled={revoking !== null}
+                    onClick={() => void handleRevokeOthers()}
+                    className="text-xs font-medium text-[var(--color-accent)] transition-opacity duration-[var(--duration-fast)] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {revoking === "others"
+                      ? "Signing out…"
+                      : "Sign out all other devices"}
+                  </button>
+                </li>
               )}
             </ul>
           )}
