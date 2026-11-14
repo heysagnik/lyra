@@ -265,30 +265,49 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             finalText = await streamResult.text;
           } catch {}
 
-          // ─── Rescue pass: never end a turn without an answer ────────
-          // If the model searched but produced no text (stalled after a
-          // tool call, hit a provider hiccup, stopped early), run one
-          // toolless generation whose only job is to synthesize the final
-          // answer from the evidence already gathered. The user gets a
-          // grounded answer, not an error.
+          // ─── Incomplete-answer detection + rescue pass ───────────────
+          // The ReAct loop can end with visible text that is NOT an answer:
+          // the model narrates intent ("those results aren't relevant — let me
+          // search..."), stops without acting, and the narration counts as
+          // text. Detect narration-style endings and force a completion:
+          //   - evidence exists → toolless synthesis from the ledger
+          //   - nothing retrieved → one more tool-enabled attempt
+          const hasCitations = /\[\d+\]/.test(finalText);
+          const narrationStart =
+            /^(?:\[[^\]]{1,32}\]\s*)?(?:thinking|ok,|hmm|well,|let me (?!know)|let's|i'll|i will|i am going to|i'm going to|grab|those results|that (?:last )?result|the results|more relevant|searching|first,)/i;
+          const needsRescue =
+            !finalText.trim() ||
+            (executedQueries.length > 0 && !hasCitations && finalText.length < 400) ||
+            (!hasCitations && finalText.length < 240 && narrationStart.test(finalText));
+
           let rescueUsage: {
             inputTokens?: number;
             outputTokens?: number;
             inputTokenDetails?: { cacheReadTokens?: number };
           } | null = null;
 
-          if (!finalText.trim()) {
+          if (needsRescue) {
+            const hasEvidence = turnSources.length > 0;
             const rescueStream = streamText({
               model: modelSelection.model,
               system: ctx.systemPrompt,
+              // Evidence in hand → answer directly, no tools. Otherwise the
+              // previous attempt never actually searched → retry WITH tools,
+              // but tightly bounded and forced to end with a real answer.
+              tools: hasEvidence || !searchEnabled ? undefined : tools,
+              stopWhen: hasEvidence || !searchEnabled ? undefined : stepCountIs(3),
+              prepareStep:
+                hasEvidence || !searchEnabled
+                  ? undefined
+                  : ({ stepNumber }) =>
+                      stepNumber >= 2 ? { toolChoice: "none" as const } : undefined,
               messages: [
                 ...messages,
                 {
                   role: "user" as const,
-                  content:
-                    (turnSources.length > 0
-                      ? `You already ran these web searches this turn: ${executedQueries.map((q) => `"${q}"`).join(", ")}. Your previous step produced no text. Do not call any tools. Using only the numbered evidence below, write the final answer to the user's last message now: cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm.\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`
-                      : `Your previous step produced no text and live search returned nothing usable (searches attempted: ${executedQueries.map((q) => `"${q}"`).join(", ") || "none"}). Do not call any tools. Answer the user's last message from your own knowledge now, and briefly note that live search was unavailable.`),
+                  content: hasEvidence
+                    ? `FINAL ANSWER REQUIRED. You already ran these web searches this turn: ${executedQueries.map((q) => `"${q}"`).join(", ")}. Your previous response stopped after narrating intent instead of answering. Do not call any tools and do not narrate. Using only the numbered evidence below, write the complete final answer to the user's last message now: cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm.\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`
+                    : `FINAL ANSWER REQUIRED. Your previous response stopped after narrating intent instead of answering (it said: "${finalText.trim().slice(0, 160)}"). Do not write intent narration. If the question needs current information, call web_search now with a specific keyword query, reflect on the results, and then give the complete final answer with inline [n] citations. Otherwise answer directly. The turn must end with the complete answer text.`,
                 },
               ],
               maxOutputTokens: effectiveMaxTokensOut,
@@ -304,7 +323,20 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               },
             });
 
-            writer.merge(rescueStream.toUIMessageStream());
+            writer.merge(
+              rescueStream.toUIMessageStream().pipeThrough(
+                // The rescue continues the SAME assistant message: dropping
+                // its `start` chunk keeps the client from resetting into a
+                // second bubble mid-answer.
+                new TransformStream({
+                  transform(chunk, controller) {
+                    if ((chunk as { type?: string }).type !== "start") {
+                      controller.enqueue(chunk);
+                    }
+                  },
+                })
+              )
+            );
 
             try {
               finalText = await rescueStream.text;
