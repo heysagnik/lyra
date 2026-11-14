@@ -43,7 +43,7 @@ import {
   type SearchParameters,
 } from "@/lib/tools/web-search";
 import { requireUser } from "@/lib/auth/require-user";
-import { checkRateLimits } from "@/lib/ratelimit/limiters";
+import { checkRateLimits, acquireOutputTokenBudget } from "@/lib/ratelimit/limiters";
 import {
   getConversation,
   createConversation,
@@ -286,6 +286,39 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         ? Math.min(effortBudget.maxTokensOut, 900)
         : effortBudget.maxTokensOut;
 
+    // ─── Provider OTPM gate ────────────────────────────────────────
+    // Groq's free tier enforces an account-wide output-tokens-per-minute
+    // ceiling per model. Without this gate, a burst of turns exhausts it,
+    // every stream call 429s, and the turn dies with no assistant message
+    // (the exact failure observed in production). Reserve this turn's
+    // output ceiling before starting; released when the turn completes.
+    let releaseOtpm: (() => Promise<void>) | undefined;
+    const otpmGate = await acquireOutputTokenBudget(
+      activeModelName,
+      effectiveMaxTokensOut
+    );
+    if (!otpmGate.ok) {
+      if (releaseInFlight) {
+        await releaseInFlight();
+        releaseInFlight = undefined;
+      }
+      return new Response(
+        JSON.stringify({
+          error:
+            "The AI provider's per-minute output limit is busy right now. Please wait a moment and send the message again.",
+          code: "RATE_LIMITED",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(otpmGate.retryAfter || 30),
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+    releaseOtpm = otpmGate.release ?? (async () => {});
+
     const streamResult = streamText({
       model: modelSelection.model,
       system: ctx.systemPrompt,
@@ -308,11 +341,23 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
           await releaseInFlight();
           releaseInFlight = undefined;
         }
+        if (releaseOtpm) {
+          try {
+            await releaseOtpm();
+          } catch {}
+          releaseOtpm = undefined;
+        }
       },
       onAbort: async () => {
         if (releaseInFlight) {
           await releaseInFlight();
           releaseInFlight = undefined;
+        }
+        if (releaseOtpm) {
+          try {
+            await releaseOtpm();
+          } catch {}
+          releaseOtpm = undefined;
         }
       },
     });
@@ -563,6 +608,12 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             } catch {}
             releaseInFlight = undefined;
           }
+          if (releaseOtpm) {
+            try {
+              await releaseOtpm();
+            } catch {}
+            releaseOtpm = undefined;
+          }
         }
       },
       onError: (err) => {
@@ -585,6 +636,8 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     if (releaseInFlight) {
       await releaseInFlight();
     }
+    // The OTPM reservation variable lives inside the try block; nothing to
+    // release here if we never got past the gates.
     logStructuredError({
       userId: user.id,
       code: "INTERNAL",

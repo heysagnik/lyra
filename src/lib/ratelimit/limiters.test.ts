@@ -132,3 +132,73 @@ describe("Rate Limiters", () => {
   });
 });
 
+
+describe("Output token per minute (OTPM) gate", () => {
+  const importLimiter = async () => await import("./limiters");
+  const importBudget = async () => await import("@/lib/agent/budget");
+
+  function mockUsageSum(total: number, oldestAt: Date | null = null) {
+    vi.spyOn(dbModule, "getDb").mockReturnValue({
+      select: () => ({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([{ total, oldestAt }]),
+      }),
+    } as unknown as dbModule.DbClient);
+  }
+
+  it("allows a turn when the rolling window has headroom", async () => {
+    const { acquireOutputTokenBudget } = await importLimiter();
+    const { MODEL_OTPM_LIMITS, OTPM_SAFETY_MARGIN } = await importBudget();
+    const model = "qwen/qwen3.8-27b";
+    mockUsageSum(0);
+
+    const gate = await acquireOutputTokenBudget(
+      model,
+      MODEL_OTPM_LIMITS[model] - OTPM_SAFETY_MARGIN
+    );
+    expect(gate.ok).toBe(true);
+    await gate.release?.();
+  });
+
+  it("denies a turn when recorded output tokens exceed the usable ceiling", async () => {
+    const { acquireOutputTokenBudget } = await importLimiter();
+    const { MODEL_OTPM_LIMITS, OTPM_SAFETY_MARGIN } = await importBudget();
+    const model = "qwen/qwen3.8-27b";
+    // usage_events already shows tokens at/above the usable ceiling
+    mockUsageSum(MODEL_OTPM_LIMITS[model] - OTPM_SAFETY_MARGIN, new Date());
+
+    const gate = await acquireOutputTokenBudget(model, 900);
+    expect(gate.ok).toBe(false);
+    expect(gate.retryAfter).toBeGreaterThanOrEqual(5);
+    expect(gate.retryAfter).toBeLessThanOrEqual(60);
+  });
+
+  it("accounts for in-flight reservations between concurrent turns", async () => {
+    const { acquireOutputTokenBudget } = await importLimiter();
+    const { MODEL_OTPM_LIMITS, OTPM_SAFETY_MARGIN } = await importBudget();
+    const model = "qwen/qwen3.8-27b";
+    mockUsageSum(MODEL_OTPM_LIMITS[model] - OTPM_SAFETY_MARGIN - 900);
+
+    // First turn reserves the remaining headroom
+    const first = await acquireOutputTokenBudget(model, 900);
+    expect(first.ok).toBe(true);
+
+    // Second concurrent turn must be denied — nothing left
+    const second = await acquireOutputTokenBudget(model, 900);
+    expect(second.ok).toBe(false);
+
+    // After release, the reservation frees up
+    await first.release?.();
+    const third = await acquireOutputTokenBudget(model, 900);
+    expect(third.ok).toBe(true);
+    await third.release?.();
+  });
+
+  it("passes through for models without an OTPM limit", async () => {
+    const { acquireOutputTokenBudget } = await importLimiter();
+    mockUsageSum(999999);
+    const gate = await acquireOutputTokenBudget("openai/gpt-oss-20b", 4096);
+    expect(gate.ok).toBe(true);
+    await gate.release?.();
+  });
+});

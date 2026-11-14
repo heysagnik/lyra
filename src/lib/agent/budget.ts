@@ -41,6 +41,22 @@ export const RATE_PER_MIN = 20;
 
 export const RATE_PER_DAY = 300;
 
+/**
+ * Groq free-tier Output Tokens Per Minute (OTPM) ceilings per model, per
+ * API key (account-wide, shared across all users of the app). Turns are
+ * gated against a rolling 60s window so bursts cannot exhaust the quota
+ * mid-answer and leave turns silently dead.
+ */
+export const MODEL_OTPM_LIMITS: Record<string, number> = {
+  "qwen/qwen3.8-27b": 1000,
+};
+
+/** Safety margin subtracted from the OTPM ceiling before gating */
+export const OTPM_SAFETY_MARGIN = 100;
+
+/** How long an in-flight turn's reservation is held before auto-expiry */
+export const OTPM_RESERVATION_TTL_MS = 120_000;
+
 export const MAX_INFLIGHT = 2;
 
 export const TARGET_PROMPT_TOKENS = 2600;
