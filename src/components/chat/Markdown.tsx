@@ -148,8 +148,8 @@ function CodeBlock({ className, children }: CodeBlockProps) {
         <span className="lowercase tracking-wide">{language || "text"}</span>
         <button
           onClick={handleCopy}
-          aria-label="CopyIcon code"
-          className="flex items-center gap-1 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--color-accent)]"
+          aria-label="Copy code"
+          className="flex items-center gap-1 px-1 py-1.5 text-[11px] transition-colors duration-[var(--duration-normal)] hover:text-[var(--color-accent)]"
         >
           {copied ? (
             <>
@@ -159,7 +159,7 @@ function CodeBlock({ className, children }: CodeBlockProps) {
           ) : (
             <>
               <CopyIcon className="h-3.5 w-3.5" />
-              <span>CopyIcon</span>
+              <span>Copy</span>
             </>
           )}
         </button>

@@ -4,7 +4,14 @@ import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { PencilIcon, ShareFatIcon, TrashIcon, CheckIcon, XIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { ActionSheet } from "./ActionSheet";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type { Conversation } from "@/types";
+
+/** Long-press duration before the options sheet opens on touch */
+const LONG_PRESS_MS = 500;
+/** Movement past this distance cancels the long-press (it's a scroll, not a hold) */
+const LONG_PRESS_SLOP_PX = 10;
 
 export interface ConversationItemProps {
   conversation: Conversation;
@@ -25,8 +32,54 @@ export function ConversationItem({
   const [titleInput, setTitleInput] = useState(conversation.title);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const isMobile = useIsMobile();
+
+  // Long-press tracking (touch only — desktop has the hover-revealed ⋯ button)
+  const pressTimer = useRef<number | null>(null);
+  const pressStart = useRef<{ x: number; y: number } | null>(null);
+  const longPressedRef = useRef(false);
+
+  const clearPress = () => {
+    if (pressTimer.current !== null) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+    pressStart.current = null;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    longPressedRef.current = false;
+    pressStart.current = { x: e.clientX, y: e.clientY };
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      longPressedRef.current = true;
+      // Light haptic tick where the API exists
+      try {
+        navigator.vibrate?.(10);
+      } catch {
+        // ignore
+      }
+      setSheetOpen(true);
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const start = pressStart.current;
+    if (!start) return;
+    if (
+      Math.abs(e.clientX - start.x) > LONG_PRESS_SLOP_PX ||
+      Math.abs(e.clientY - start.y) > LONG_PRESS_SLOP_PX
+    ) {
+      // Finger is scrolling the list, not holding the item
+      clearPress();
+    }
+  };
+
+  const handlePointerCancel = () => clearPress();
 
   const openMenu = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -38,6 +91,33 @@ export function ConversationItem({
     }
     const top = Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 176));
     setMenuPos({ top, left });
+  };
+
+  const handleSelect = () => {
+    if (onSelect) {
+      onSelect(conversation.id);
+    } else {
+      router.push(`/chat/${conversation.id}`);
+    }
+  };
+
+  const handleTitleClick = () => {
+    // The tap that released a long-press must not also open the chat
+    if (longPressedRef.current) {
+      longPressedRef.current = false;
+      return;
+    }
+    handleSelect();
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/share/${conversation.id}`
+      );
+    } catch {
+      // ignore
+    }
   };
 
   const handleSaveRename = async (e?: React.FormEvent) => {
@@ -52,6 +132,25 @@ export function ConversationItem({
     await onDelete(conversation.id);
     setShowConfirmDelete(false);
   };
+
+  const sheetActions = [
+    {
+      label: "Rename",
+      icon: <PencilIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />,
+      onSelect: () => setIsEditing(true),
+    },
+    {
+      label: "Share chat",
+      icon: <ShareFatIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />,
+      onSelect: () => void handleShare(),
+    },
+    {
+      label: "Delete",
+      icon: <TrashIcon aria-hidden className="h-4 w-4 shrink-0" />,
+      danger: true,
+      onSelect: () => setShowConfirmDelete(true),
+    },
+  ];
 
   if (isEditing) {
     return (
@@ -122,28 +221,30 @@ export function ConversationItem({
 
   return (
     <div
-      className={`group relative flex h-9 w-full items-center rounded-[var(--radius-lg)] pr-1 transition-colors duration-[var(--duration-normal)] ${
+      className={`group relative flex h-9 w-full select-none items-center rounded-[var(--radius-lg)] pr-1 transition-colors duration-[var(--duration-normal)] [-webkit-touch-callout:none] ${
         isActive
           ? "bg-[var(--color-hover)] text-[var(--color-text)]"
           : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
       }`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={clearPress}
+      onPointerCancel={handlePointerCancel}
+      onContextMenu={(e) => {
+        // Suppress the native text-selection callout a long-press would open
+        if (longPressedRef.current) e.preventDefault();
+      }}
     >
       <button
         type="button"
-        onClick={() => {
-          if (onSelect) {
-            onSelect(conversation.id);
-          } else {
-            router.push(`/chat/${conversation.id}`);
-          }
-        }}
+        onClick={handleTitleClick}
         aria-current={isActive ? "true" : undefined}
         className="min-w-0 flex-1 cursor-pointer truncate px-3 text-left text-sm"
       >
         <span className="truncate">{conversation.title}</span>
       </button>
 
-      {/* Options menu trigger, revealed on hover or keyboard focus */}
+      {/* Options menu trigger, revealed on hover or keyboard focus (desktop) */}
       <button
         ref={triggerRef}
         type="button"
@@ -165,7 +266,7 @@ export function ConversationItem({
         <DotsThreeIcon aria-hidden className="h-4 w-4" weight="bold"/>
       </button>
 
-      {/* Options menu — portaled to body so the sidebar never clips it */}
+      {/* Desktop: floating popover, portaled to body so the sidebar never clips it */}
       {menuPos &&
         createPortal(
           <>
@@ -194,16 +295,10 @@ export function ConversationItem({
               </button>
               <button
                 role="menuitem"
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   setMenuPos(null);
-                  try {
-                    await navigator.clipboard.writeText(
-                      `${window.location.origin}/share/${conversation.id}`
-                    );
-                  } catch {
-                    // ignore
-                  }
+                  void handleShare();
                 }}
                 className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
               >
@@ -227,6 +322,15 @@ export function ConversationItem({
           </>,
           document.body
         )}
+
+      {/* Mobile: bottom sheet, opened by long-press on the item */}
+      {sheetOpen && isMobile && (
+        <ActionSheet
+          title={conversation.title}
+          actions={sheetActions}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }

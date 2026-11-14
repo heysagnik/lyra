@@ -55,8 +55,8 @@ export default function PersonalizationSettingsPage() {
             <div aria-hidden className="divide-y divide-[var(--color-border)]">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="px-5 py-4">
-                  <div className="h-3 w-20 animate-pulse rounded-full bg-[var(--color-surface-2)]" />
-                  <div className="mt-2.5 h-3 w-3/4 animate-pulse rounded-full bg-[var(--color-surface-2)]" />
+                  <div className="skeleton h-3 w-20 rounded-full" />
+                  <div className="mt-2.5 skeleton h-3 w-3/4 rounded-full" />
                 </div>
               ))}
             </div>

@@ -535,6 +535,20 @@ input:focus {
   }
 }
 
+/* Bottom sheet: slides up from the bottom edge it lives on */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-in {
+  animation: sheet-in 260ms var(--ease-drawer) backwards;
+}
+
 /* Toast: enters from where it lives (top corner), never from scale(0) */
 @keyframes toast-in {
   from {
@@ -599,7 +613,8 @@ input:focus {
   .thinking-star,
   .aura-breathe,
   .animate-spin,
-  .animate-pulse {
+  .animate-pulse,
+  .sheet-in {
     animation: none;
   }
 

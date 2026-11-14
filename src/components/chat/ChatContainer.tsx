@@ -9,6 +9,8 @@ import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
 import { Composer } from "./Composer";
 import { Toast } from "./Toast";
+import { ActionSheet } from "./ActionSheet";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { useAgentChat } from "@/lib/api/use-agent-chat";
 import {
   fetchConversations,
@@ -58,6 +60,7 @@ export function ChatContainer({
   const [isRenamingHeader, setIsRenamingHeader] = useState(false);
   const [headerTitle, setHeaderTitle] = useState("");
   const [shared, setShared] = useState(false);
+  const isMobile = useIsMobile();
   const router = useRouter();
 
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -279,9 +282,54 @@ export function ChatContainer({
                     />
                   </button>
 
-                  {/* Title dropdown menu */}
-                {headerMenuOpen && (
-                  <>
+                  {/* Title dropdown: bottom sheet on mobile, popover on desktop */}
+                {headerMenuOpen && isMobile && (
+                  <ActionSheet
+                    title={activeConv?.title ?? "New chat"}
+                    onClose={() => setHeaderMenuOpen(false)}
+                    actions={[
+                      {
+                        label: "Rename",
+                        icon: <PencilSimpleIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />,
+                        onSelect: () => {
+                          setHeaderTitle(activeConv?.title ?? "");
+                          setIsRenamingHeader(true);
+                        },
+                      },
+                      {
+                        label: "Share chat",
+                        icon: <ShareFatIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />,
+                        onSelect: async () => {
+                          if (!activeId) return;
+                          try {
+                            await navigator.clipboard.writeText(
+                              `${window.location.origin}/share/${activeId}`
+                            );
+                            setShared(true);
+                            setTimeout(() => setShared(false), 2000);
+                          } catch {
+                            // ignore
+                          }
+                        },
+                      },
+                      {
+                        label: "Delete",
+                        icon: <TrashSimpleIcon aria-hidden className="h-4 w-4 shrink-0" />,
+                        danger: true,
+                        onSelect: async () => {
+                          if (activeId) {
+                            await deleteMutation.mutateAsync(activeId);
+                            setActiveId(undefined);
+                            router.push("/");
+                          }
+                        },
+                      },
+                    ]}
+                  />
+                )}
+
+                {headerMenuOpen && !isMobile && (
+                <>
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setHeaderMenuOpen(false)}
