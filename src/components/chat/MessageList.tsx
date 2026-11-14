@@ -45,20 +45,32 @@ export function MessageList({
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const [showScrollBottomPill, setShowScrollBottomPill] = useState(false);
   const isUserScrollingRef = useRef(false);
+  const programmaticScrollRef = useRef(false);
+  const programmaticTimerRef = useRef<number | null>(null);
 
   const scrollToBottom = useCallback((smooth = true) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
-    bottomAnchorRef.current?.scrollIntoView({
+    programmaticScrollRef.current = true;
+    if (programmaticTimerRef.current !== null) {
+      window.clearTimeout(programmaticTimerRef.current);
+    }
+    el.scrollTo({
+      top: el.scrollHeight,
       behavior: smooth && !reduceMotion ? "smooth" : "auto",
     });
+    programmaticTimerRef.current = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, smooth && !reduceMotion ? 700 : 50);
     setShowScrollBottomPill(false);
   }, []);
 
   const handleScroll = () => {
     const el = scrollContainerRef.current;
-    if (!el) return;
+    if (!el || programmaticScrollRef.current) return;
 
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const isNearBottom = distanceFromBottom < 100;
@@ -66,6 +78,27 @@ export function MessageList({
     isUserScrollingRef.current = !isNearBottom;
     setShowScrollBottomPill(!isNearBottom);
   };
+
+  const firstMessageIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const first = messages[0]?.id ?? null;
+    const switched =
+      firstMessageIdRef.current !== null && first !== firstMessageIdRef.current;
+    firstMessageIdRef.current = first;
+    if (switched) {
+      isUserScrollingRef.current = false;
+      setShowScrollBottomPill(false);
+      scrollToBottom(false);
+    }
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (programmaticTimerRef.current !== null) {
+        window.clearTimeout(programmaticTimerRef.current);
+      }
+    };
+  }, []);
 
   // Scroll on new messages or stream chunks unless user scrolled up
   useEffect(() => {
