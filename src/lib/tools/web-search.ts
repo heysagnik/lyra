@@ -202,13 +202,26 @@ export async function searchWebStructured(params: {
   let sources: SearchSource[] = [];
   try {
     sources = await callTinySearchApi(query, params.recency_days);
-  } catch {
+  } catch (firstError) {
     // Brief backoff, then one more attempt — transient API hiccups should
     // never surface as a failed turn.
     await new Promise((resolve) => setTimeout(resolve, 400));
     try {
       sources = await callTinySearchApi(query, params.recency_days);
-    } catch {
+    } catch (secondError) {
+      console.error(
+        JSON.stringify({
+          code: "TOOL",
+          msg: "Web search unavailable after retry",
+          error:
+            secondError instanceof Error
+              ? secondError.message
+              : String(secondError),
+          firstError:
+            firstError instanceof Error ? firstError.message : String(firstError),
+          query,
+        })
+      );
       return {
         sources: [],
         note: "Web search is currently unavailable. Answer using your existing knowledge and briefly mention that live search could not be reached.",
@@ -225,6 +238,146 @@ export async function searchWebStructured(params: {
 
   await setCachedSearch(cacheKey, sources);
   return { sources };
+}
+
+/**
+ * Event/happening terms used to (a) auto-refine vague entity queries with
+ * the intent from the user's own message, and (b) detect when retrieved
+ * evidence contradicts an answer that denies an asserted event.
+ */
+const EVENT_TERM_PHRASES = [
+  "stepped down", "stepping down", "broke out", "came out", "came forward",
+  "shut down", "laid off", "bought out", "spun off", "banned from",
+  "kicked out", "asked to leave",
+];
+const EVENT_TERM_WORDS = new Set([
+  "resign", "resigned", "resignation", "resigns", "quit", "fired", "sacked",
+  "affair", "affairs", "scandal", "scandals", "lawsuit", "sued", "sues", "arrested", "arrest",
+  "died", "death", "killed", "layoff", "layoffs", "bankrupt", "bankruptcy",
+  "acquired", "acquisition", "merger", "ipo", "launched", "launch",
+  "released", "release", "announced", "announcement", "pricing", "price",
+  "update", "updates", "earnings", "revenue", "profit", "loss",
+  "partnership", "partnership deal", "resigned amid", "controversy",
+  "allegations", "accused", "rumor", "rumors", "rumour", "replaced",
+  "stepped", "demoted", "promoted", "hired", "poached", "banned",
+  "breach", "hacked", "outage", "recalled", "investigation",
+]);
+
+/**
+ * Extracts concrete event/happening terms from free text (usually the
+ * user's latest message). Returns matched phrases first, then single
+ * words, deduped, most useful for query refinement.
+ */
+export function extractEventKeywords(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: string[] = [];
+  for (const phrase of EVENT_TERM_PHRASES) {
+    if (lower.includes(phrase)) found.push(phrase);
+  }
+  for (const word of lower.split(/[^a-z']+/)) {
+    if (EVENT_TERM_WORDS.has(word) && !found.includes(word)) found.push(word);
+  }
+  // Singularize so "affairs"/"scandals" match snippets that say "affair"/
+  // "scandal" (substring matching downstream needs the shorter stem).
+  return found
+    .map((term) =>
+      term.length > 3 && !term.endsWith("ss") && term.endsWith("s")
+        ? term.slice(0, -1)
+        : term
+    )
+    .filter((term, i, arr) => arr.indexOf(term) === i)
+    .slice(0, 4);
+}
+
+/**
+ * Heuristic: does this result look like an actual article/report about a
+ * recent event (as opposed to a profile, homepage, or evergreen page)?
+ * Signals: a dated result with a non-generic title whose URL path looks
+ * like an article, or a snippet that reads like news.
+ */
+export function looksLikeNewsResult(source: SearchSource): boolean {
+  const title = (source.title || "").trim();
+  if (!title) return false;
+  try {
+    const u = new URL(source.url);
+    const segments = u.pathname.split("/").filter(Boolean);
+    if (segments.length <= 1) return false; // homepage / section root
+    if (segments.length >= 3) return true; // deep article-like path
+    // Shallow path: still plausible if a date is present
+  } catch {
+    return false;
+  }
+  const dated =
+    !!source.date &&
+    /hour|day|week|month|ago|\d{4}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i.test(
+      source.date
+    );
+  const titleIsSentence = title.length > 25 && /[a-z]\s+[a-z]/i.test(title);
+  return dated && titleIsSentence;
+}
+
+/**
+ * Orders a batch of fresh results so that event-like, dated, non-generic
+ * results come FIRST and generic entity pages (homepages, profiles,
+ * wikis, tickers) come LAST. Qwen-class models attend most to the top of
+ * the evidence block; burying the one relevant article under five
+ * profile pages is the single most common cause of confidently wrong
+ * "no evidence found" answers.
+ */
+export function rankSourcesForEvidence(
+  sources: SearchSource[],
+  queryKey: string
+): SearchSource[] {
+  const score = (s: SearchSource): number => {
+    let v = 0;
+    if (looksLikeNewsResult(s)) v += 3;
+    if (!isGenericEntityResult(s, queryKey)) v += 2;
+    if (s.date && /hour|minute|day|ago/i.test(s.date)) v += 2;
+    else if (s.date && /week|month/i.test(s.date)) v += 1;
+    if (s.snippet && s.snippet.length > 80) v += 1;
+    return v;
+  };
+  return [...sources].sort((a, b) => score(b) - score(a));
+}
+
+/**
+ * Detects "generic entity page" results — bare profiles, homepages, or
+ * section roots instead of articles about the event the query asked
+ * about. The loop uses this to tell the model its query was too vague.
+ */
+export function isGenericEntityResult(
+  source: SearchSource,
+  queryKey: string
+): boolean {
+  const title = normalizeQueryKey(
+    (source.title || "").replace(/\([^)]*\)/g, "")
+  );
+  if (!title) return true;
+
+  // Title repeats the whole query verbatim ("Jensen Huang" for a query
+  // about Jensen Huang's resignation)
+  if (title === queryKey) return true;
+
+  // Leading segment before separators is the entity itself — a profile or
+  // bio page ("Jensen Huang - NVIDIA", "Sam Xia - CTO, LendAPI",
+  // "Jensen Huang | NVIDIA")
+  const lead = normalizeQueryKey(
+    title.split(/ [-|/:] /)[0] || title
+  );
+  if (lead === queryKey) return true;
+
+  // Very short titles are nav/entity labels ("Nvidia", "Home", "X")
+  if (title.length <= 6) return true;
+
+  // Site homepage or bare section root (nvidia.com/, reuters.com/tech/)
+  try {
+    const path = new URL(source.url).pathname.replace(/\/+$/, "");
+    if (path.split("/").filter(Boolean).length <= 1) return true;
+  } catch {
+    return true;
+  }
+
+  return false;
 }
 
 /**

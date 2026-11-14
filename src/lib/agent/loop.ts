@@ -14,11 +14,32 @@ import {
   calculateTurnCostUsd,
   type Effort,
 } from "./budget";
+
+/** Event/intent terms that make a search query specific enough to act on */
+const SEARCH_INTENT_WORDS = new Set([
+  "news", "ceo", "cfo", "cto", "price", "pricing", "release", "launched",
+  "launch", "update", "updates", "earnings", "results", "revenue", "stock",
+  "scandal", "resign", "resigned", "resignation", "lawsuit", "sued", "sues",
+  "affair", "layoff", "layoffs", "review", "reviewed", "vs", "versus",
+  "buy", "sold", "sale", "acquisition", "acquired", "partnership", "ipo",
+  "fired", "arrest", "arrested", "died", "death", "rumor", "rumors",
+  "controversy", "caught", "spy", "allegations", "accused", "benchmark",
+  "features", "specification", "specifications", "specs", "announced",
+  "announcement", "statement", "interview", "paper", "study", "guide",
+  "tutorial", "documentation", "docs", "how", "why", "what", "when", "who",
+  "history", "biography", "founder", "founded", "company", "wirecutter",
+  "best", "top", "comparison", "weather", "today", "latest", "current",
+  "schedule", "score", "election", "government", "policy", "law", "rule",
+]);
 import {
   searchParametersSchema,
   searchWebStructured,
   formatSourcesForModel,
+  isGenericEntityResult,
   normalizeQueryKey,
+  extractEventKeywords,
+  rankSourcesForEvidence,
+  looksLikeNewsResult,
   type SearchParameters,
 } from "@/lib/tools/web-search";
 import { requireUser } from "@/lib/auth/require-user";
@@ -128,7 +149,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
 
     const customSearchTool = tool({
       description:
-        "Search the live web for current information. Call multiple times per turn with distinct, refined queries when research requires it: first to locate facts, then to verify or fill gaps. Never repeat an identical query.",
+        "Search the live web for current information. Queries must pair the entity with the event or intent (e.g. 'Jensen Huang resignation rumor', not 'Jensen Huang'). Call multiple times per turn with distinct, refined queries when research requires it. Never repeat an identical query.",
       inputSchema: searchParametersSchema,
       execute: async (args: SearchParameters) => {
         const parsed = searchParametersSchema.safeParse(args);
@@ -144,10 +165,40 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
           return "Tool error: Search query was empty. Please specify keywords (e.g. web_search({ query: 'hubspot pricing 2026' })).";
         }
 
+        // Vague-query handling: a bare entity name (1-2 words with no
+        // event/intent term) returns homepages and profiles, not evidence.
+        // First try to AUTO-REFINE it using event keywords from the user's
+        // own message ("Jensen Huang" + user said "resigned" ->
+        // "Jensen Huang resigned") — executing the refined query keeps the
+        // turn moving instead of bouncing the problem back to the model.
+        // Only bounce when we genuinely cannot infer the intent.
+        const queryWords = query.split(/\s+/).filter(Boolean);
+        const hasIntentWord = queryWords.some((w) =>
+          SEARCH_INTENT_WORDS.has(w.toLowerCase().replace(/[^a-z]/g, ""))
+        );
+        let effectiveQuery = query;
+        let refinementNote = "";
+        if (queryWords.length < 2 || (queryWords.length === 2 && !hasIntentWord)) {
+          const eventKeywords = extractEventKeywords(input.text);
+          if (eventKeywords.length > 0) {
+            effectiveQuery = query + " " + eventKeywords.slice(0, 3).join(" ");
+            refinementNote =
+              '(NOTE: your query "' + query + '" was auto-refined to "' +
+              effectiveQuery + '" using the intent from the user\'s message. ' +
+              'Next time, include the event keywords yourself.)\n\n';
+          } else {
+            return (
+              'Query "' + query + '" is too vague — a bare name or entity pair returns generic pages and profiles, not evidence about what happened. ' +
+              'Re-query with the entity plus event/intent keywords that match the user\'s question ' +
+              '(e.g. "' + queryWords[0] + ' resignation news", "' + queryWords[0] + ' announcement update", "' + queryWords.join(" ") + ' scandal details").'
+            );
+          }
+        }
+
         // Same query twice in one turn = the model is looping. Point it
         // back at the evidence it already has instead of paying for the
         // same search again.
-        const queryKey = normalizeQueryKey(query);
+        const queryKey = normalizeQueryKey(effectiveQuery);
         if (executedQueryKeys.has(queryKey)) {
           return `You already searched "${query}" this turn. Reflect on the evidence above ([1]-[${turnSources.length}]) and either run a different, refined query or synthesize your final answer now.`;
         }
@@ -157,10 +208,10 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         }
 
         executedQueryKeys.add(queryKey);
-        executedQueries.push(query);
+        executedQueries.push(effectiveQuery);
 
         const result = await searchWebStructured({
-          query,
+          query: effectiveQuery,
           recency_days: parsed.success ? parsed.data.recency_days : undefined,
         });
 
@@ -173,13 +224,18 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         }
 
         // Merge into the turn-wide ledger, deduped by URL, globally numbered.
-        const fresh: SearchSource[] = [];
+        // Rank the fresh batch so event-like dated articles come first and
+        // generic entity pages come last — models attend most to the top of
+        // the evidence block, and burying the one relevant article under
+        // five profile pages is the top cause of "no evidence" answers.
+        const unique: SearchSource[] = [];
         for (const source of result.sources) {
           if (!source.url || seenSourceUrls.has(source.url)) continue;
           seenSourceUrls.add(source.url);
-          turnSources.push(source);
-          fresh.push(source);
+          unique.push(source);
         }
+        const fresh = rankSourcesForEvidence(unique, queryKey);
+        turnSources.push(...fresh);
 
         if (fresh.length === 0) {
           return `These results repeat evidence already retrieved ([1]-[${turnSources.length}]). Reflect: if it suffices, synthesize your final answer with inline [n] citations; otherwise search with different keywords.`;
@@ -188,7 +244,27 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         emitSources(turnSources);
 
         const startIndex = turnSources.length - fresh.length;
-        let toolText = formatSourcesForModel(fresh, startIndex);
+        let toolText = refinementNote + formatSourcesForModel(fresh, startIndex);
+
+        // Result-quality feedback: if most of this result set is generic
+        // entity pages (title = query/entity, or a site homepage), the query
+        // was too vague — tell the model to re-query with event keywords
+        // instead of synthesizing from homepages.
+        const genericCount = fresh.filter((s) =>
+          isGenericEntityResult(s, queryKey)
+        ).length;
+        if (genericCount >= Math.max(2, Math.ceil(fresh.length * 0.6))) {
+          toolText += `\n\n(RESULT QUALITY WARNING: ${genericCount} of ${fresh.length} results are generic entity pages or site homepages, not articles about the event. Your query was too vague. Re-query with event-specific keywords — what happened, to whom, claimed by whom — instead of synthesizing from these homepages.)`;
+        }
+        const articleNumbers = fresh
+          .map((s, i) => (looksLikeNewsResult(s) ? startIndex + i + 1 : -1))
+          .filter((n) => n > 0);
+        if (articleNumbers.length > 0) {
+          toolText +=
+            "\n\n(ATTENTION: results " +
+            articleNumbers.map((n) => "[" + n + "]").join(", ") +
+            " look like actual dated articles or reports about recent events. Read their titles and snippets CAREFULLY before concluding anything — a headline or snippet mentioning the event the user asked about IS the evidence you were looking for, even when it appears among profile pages. Never answer that there is no evidence while one of these results mentions the event.)";
+        }
         if (turnSources.length >= MAX_SOURCES_PER_TURN) {
           toolText += `\n\n(Evidence ledger now holds ${turnSources.length} sources — the maximum for this turn. Synthesize your final answer now with inline [n] citations.)`;
         } else if (executedQueries.length >= 2) {
@@ -286,7 +362,30 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             inputTokenDetails?: { cacheReadTokens?: number };
           } | null = null;
 
-          if (needsRescue) {
+          // ─── Contradiction rescue ──────────────────────────────────
+          // The most damaging failure observed in production: the user
+          // asserts an event, the evidence ledger CONTAINS a source whose
+          // title/snippet mentions that event, yet the model answers
+          // "there is no credible evidence". Detect that exact mismatch
+          // and force a re-read of the matching sources.
+          const DENIAL_RE =
+            /no (credible |verifiable |reliable |convincing )?(evidence|news|report|reporting|confirmation|mention|indication)|there is no |not (been )?(confirmed|verified|reported|backed)|doesn'?t appear to be|no sign of|no public/i;
+          const assertedEvents = extractEventKeywords(input.text);
+          const matchingEvidence = assertedEvents.length > 0
+            ? turnSources.filter((src) =>
+                assertedEvents.some((kw) => {
+                  const hay = (src.title + " " + src.snippet).toLowerCase();
+                  return hay.includes(kw);
+                })
+              )
+            : [];
+          const contradictsEvidence =
+            !needsRescue &&
+            finalText.trim().length > 0 &&
+            matchingEvidence.length > 0 &&
+            DENIAL_RE.test(finalText);
+
+          if (needsRescue || contradictsEvidence) {
             const hasEvidence = turnSources.length > 0;
             const rescueStream = streamText({
               model: modelSelection.model,
@@ -306,7 +405,12 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
                 {
                   role: "user" as const,
                   content: hasEvidence
-                    ? `FINAL ANSWER REQUIRED. You already ran these web searches this turn: ${executedQueries.map((q) => `"${q}"`).join(", ")}. Your previous response stopped after narrating intent instead of answering. Do not call any tools and do not narrate. Using only the numbered evidence below, write the complete final answer to the user's last message now: cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm.\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`
+                    ? contradictsEvidence
+                      ? "CORRECTION REQUIRED. Your previous answer denied that anything happened, but the retrieved evidence below contains sources whose titles or snippets DIRECTLY mention it: " +
+                        formatSourcesForModel(matchingEvidence) +
+                        ". Re-read that evidence carefully and give the corrected, complete final answer to the user's last message now, citing inline as [n] matching the evidence numbering. If, after genuinely re-reading, the evidence still does not support the event, say so explicitly and quote which sources you checked.\n\nFULL EVIDENCE:\n" +
+                        formatSourcesForModel(turnSources)
+                      : `FINAL ANSWER REQUIRED. You already ran these web searches this turn: ${executedQueries.map((q) => `"${q}"`).join(", ")}. Your previous response stopped after narrating intent instead of answering. Do not call any tools and do not narrate. Using only the numbered evidence below, write the complete final answer to the user's last message now: cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm.\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`
                     : `FINAL ANSWER REQUIRED. Your previous response stopped after narrating intent instead of answering (it said: "${finalText.trim().slice(0, 160)}"). Do not write intent narration. If the question needs current information, call web_search now with a specific keyword query, reflect on the results, and then give the complete final answer with inline [n] citations. Otherwise answer directly. The turn must end with the complete answer text.`,
                 },
               ],
@@ -339,15 +443,26 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             );
 
             try {
-              finalText = await rescueStream.text;
+              const rescueText = await rescueStream.text;
+              if (contradictsEvidence && rescueText.trim()) {
+                // UI sees: original answer + correction appended; persist both.
+                finalText =
+                  finalText.trim() +
+                  "\n\n**Update after re-checking the evidence:** " +
+                  rescueText.trim();
+              } else {
+                finalText = rescueText;
+              }
             } catch {}
             try {
               rescueUsage = await rescueStream.usage;
             } catch {}
           }
 
-          // Even the rescue could not produce text — log quietly for
-          // diagnosis and let the stream error path surface a retry.
+          // Even the rescue could not produce text. Emit and persist a
+          // visible fallback so the user never gets a silently dead turn
+          // (observed in production: Groq OTPM exhaustion 429s leave the
+          // last user message with no assistant reply at all).
           if (!finalText.trim()) {
             logStructuredError({
               userId: user.id,
@@ -356,7 +471,17 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               msg: "Turn finished with no text output even after rescue pass",
               error: `model=${activeModelName} searches=${executedQueries.length}`,
             });
-            throw new Error("GENERATION_EMPTY");
+            finalText =
+              "I could not generate a response for that message — the model returned no output (this can happen when the provider is rate-limiting). Please try sending it again.";
+            try {
+              writer.write({ type: "text-start", id: "fallback" } as never);
+              writer.write({
+                type: "text-delta",
+                id: "fallback",
+                delta: finalText,
+              } as never);
+              writer.write({ type: "text-end", id: "fallback" } as never);
+            } catch {}
           }
 
           // ─── Persist the completed turn ─────────────────────────────
