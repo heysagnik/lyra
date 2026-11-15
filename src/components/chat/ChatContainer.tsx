@@ -9,6 +9,7 @@ import { MessageList } from "./MessageList";
 import { EmptyState } from "./EmptyState";
 import { Composer } from "./Composer";
 import { ActionSheet } from "./ActionSheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { useAgentChat } from "@/lib/api/use-agent-chat";
@@ -146,8 +147,8 @@ export function ChatContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatError]);
 
-  // Mutations
-  const renameMutation = useMutation({
+  // Mutations (mutateAsync is stable, so the callbacks below can be memoized)
+  const { mutateAsync: renameConversationAsync } = useMutation({
     mutationFn: ({ id, title }: { id: string; title: string }) =>
       updateConversationApi(id, { title }),
     onSuccess: () => {
@@ -159,7 +160,7 @@ export function ChatContainer({
     },
   });
 
-  const deleteMutation = useMutation({
+  const { mutateAsync: deleteConversationAsync } = useMutation({
     mutationFn: (id: string) => deleteConversationApi(id),
     onSuccess: (_, deletedId) => {
       if (activeId === deletedId) {
@@ -171,6 +172,34 @@ export function ChatContainer({
       toast.error(error instanceof Error ? error.message : "Could not delete conversation");
     },
   });
+
+  // Stable identities so the memoized Sidebar (and its items) skip re-renders
+  // while streaming updates the message list on every token
+  const handleSelectConversation = useCallback((id: string) => {
+    setActiveId(id);
+    window.history.pushState(null, "", `/chat/${id}`);
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    setActiveId(undefined);
+    window.history.pushState(null, "", "/new");
+  }, []);
+
+  const handleRenameConversation = useCallback(
+    async (id: string, title: string) => {
+      await renameConversationAsync({ id, title });
+    },
+    [renameConversationAsync]
+  );
+
+  const handleDeleteConversation = useCallback(
+    async (id: string) => {
+      await deleteConversationAsync(id);
+    },
+    [deleteConversationAsync]
+  );
+
+  const handleCloseSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   const handleSend = (
     text: string,
@@ -224,22 +253,12 @@ export function ChatContainer({
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
-        onSelectConversation={(id) => {
-          setActiveId(id);
-          window.history.pushState(null, "", `/chat/${id}`);
-        }}
-        onNewChat={() => {
-          setActiveId(undefined);
-          window.history.pushState(null, "", "/new");
-        }}
-        onRenameConversation={async (id, title) => {
-          await renameMutation.mutateAsync({ id, title });
-        }}
-        onDeleteConversation={async (id) => {
-          await deleteMutation.mutateAsync(id);
-        }}
+        onSelectConversation={handleSelectConversation}
+        onNewChat={handleNewChat}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
         isOpenMobile={isSidebarOpen}
-        onCloseMobile={() => setIsSidebarOpen(false)}
+        onCloseMobile={handleCloseSidebar}
         isLayoutReady={isLayoutReady}
       />
 
@@ -257,10 +276,7 @@ export function ChatContainer({
             </button>
 
             {isSwitching ? (
-              <div
-                aria-hidden
-                className="h-5 w-40 skeleton rounded-[var(--radius-md)]"
-              />
+              <Skeleton className="h-5 w-40 rounded-[var(--radius-md)]" />
             ) : isEmpty ? (
               <div className="flex items-center md:hidden"/>
             ) : isRenamingHeader ? (
@@ -268,7 +284,7 @@ export function ChatContainer({
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (activeId && headerTitle.trim()) {
-                    await renameMutation.mutateAsync({
+                    await renameConversationAsync({
                       id: activeId,
                       title: headerTitle.trim(),
                     });
@@ -346,7 +362,7 @@ export function ChatContainer({
                         danger: true,
                         onSelect: async () => {
                           if (activeId) {
-                            await deleteMutation.mutateAsync(activeId);
+                            await deleteConversationAsync(activeId);
                             setActiveId(undefined);
                             router.push("/");
                           }
@@ -375,7 +391,7 @@ export function ChatContainer({
                           setHeaderTitle(activeConv?.title ?? "");
                           setIsRenamingHeader(true);
                         }}
-                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
                       >
                         <PencilSimpleIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
                         <span className="flex-1">Rename</span>
@@ -395,7 +411,7 @@ export function ChatContainer({
                             // ignore
                           }
                         }}
-                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
                       >
                         <ShareFatIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
                         <span className="flex-1">Share chat</span>
@@ -406,12 +422,12 @@ export function ChatContainer({
                         onClick={async () => {
                           setHeaderMenuOpen(false);
                           if (activeId) {
-                            await deleteMutation.mutateAsync(activeId);
+                            await deleteConversationAsync(activeId);
                             setActiveId(undefined);
                             router.push("/");
                           }
                         }}
-                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.99]"
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
                       >
                         <TrashSimpleIcon aria-hidden className="h-4 w-4 shrink-0" />
                         <span className="flex-1">Delete</span>

@@ -58,7 +58,7 @@ function CitationHoverCard({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Source ${index}: ${source.title || hostname}`}
-        className="font-coordinate mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-[var(--color-surface-2)] px-1 text-[10px] font-semibold text-[var(--color-accent)] ring-1 ring-[var(--color-border)] transition-[background-color,color,ring-color] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)] hover:ring-[var(--color-accent)]/50 active:scale-95"
+        className="font-coordinate mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-[var(--radius-xs)] bg-[var(--color-surface-2)] px-1 text-[10px] font-semibold text-[var(--color-accent)] ring-1 ring-[var(--color-border)] transition-[background-color,color,ring-color] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)] hover:ring-[var(--color-accent)]/50 active:scale-[0.96]"
       >
         {index}
       </a>
@@ -66,7 +66,7 @@ function CitationHoverCard({
       {isOpen && (
         <span
           role="tooltip"
-          className="rise-in absolute bottom-full left-1/2 z-50 mb-1.5 w-64 max-w-[280px] -translate-x-1/2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5 text-left shadow-lg"
+          className="rise-in absolute bottom-full left-1/2 z-50 mb-1.5 w-64 max-w-[280px] -translate-x-1/2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5 text-left shadow-lg"
         >
           {/* Header */}
           <span className="mb-1 flex items-center justify-between text-[11px] text-[var(--color-text-tertiary)]">
@@ -199,7 +199,7 @@ export function Markdown({
             if (isInline) {
               return (
                 <code
-                  className="font-coordinate rounded bg-[var(--color-hover)] px-1.5 py-0.5 text-[0.85em] text-[var(--color-text)]"
+                  className="font-coordinate rounded-[var(--radius-xs)] bg-[var(--color-hover)] px-1.5 py-0.5 text-[0.85em] text-[var(--color-text)]"
                   {...props}
                 >
                   {children}

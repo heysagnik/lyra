@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { ArrowDownIcon } from "@phosphor-icons/react";
 import { MessageBubble } from "./MessageBubble";
 import { EmptyState } from "./EmptyState";
+import { ChatMessagesSkeleton } from "./chat-skeletons";
 import type { AgentChatMessage } from "@/lib/api/use-agent-chat";
 
 export interface MessageListProps {
@@ -12,27 +13,6 @@ export interface MessageListProps {
   /** True while the conversation's messages are being fetched (first visit) */
   isLoading?: boolean;
   onRegenerate?: () => void;
-}
-
-/** Skeleton shown while a conversation loads for the first time */
-function ConversationSkeleton() {
-  return (
-    <div className="relative min-h-0 flex-1" aria-busy="true" aria-label="Loading conversation">
-      <div className="h-full overflow-hidden px-4 py-6">
-        <div className="mx-auto flex max-w-[42rem] flex-col gap-5">
-          <div className="flex justify-end">
-            <div className="skeleton h-9 w-44 rounded-2xl" />
-          </div>
-          <div className="flex justify-start">
-            <div className="skeleton h-16 w-full max-w-md rounded-2xl" />
-          </div>
-          <div className="flex justify-start">
-            <div className="skeleton h-10 w-3/4 max-w-sm rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function MessageList({
@@ -111,7 +91,15 @@ export function MessageList({
 
   if (messages.length === 0) {
     if (isLoading) {
-      return <ConversationSkeleton />;
+      return (
+        <div
+          className="relative min-h-0 flex-1"
+          aria-busy="true"
+          aria-label="Loading conversation"
+        >
+          <ChatMessagesSkeleton />
+        </div>
+      );
     }
     return <EmptyState />;
   }
@@ -124,7 +112,7 @@ export function MessageList({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto overscroll-contain px-4 py-6 pb-36 sm:pb-40"
+        className="h-full overflow-y-auto overscroll-contain px-3 py-6 sm:px-4 pb-36 sm:pb-40"
       >
         <div className="mx-auto max-w-[42rem]">
           {visibleMessages.map((msg, idx) => (

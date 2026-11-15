@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { memo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { PencilIcon, ShareFatIcon, TrashIcon, CheckIcon, XIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import { ActionSheet } from "./ActionSheet";
-import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import type { Conversation } from "@/types";
 
 /** Long-press duration before the options sheet opens on touch */
@@ -19,14 +18,17 @@ export interface ConversationItemProps {
   onSelect?: (id: string) => void;
   onRename: (id: string, newTitle: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  /** Lifted to Sidebar so the item skips its own matchMedia subscription */
+  isMobile: boolean;
 }
 
-export function ConversationItem({
+export const ConversationItem = memo(function ConversationItem({
   conversation,
   isActive,
   onSelect,
   onRename,
   onDelete,
+  isMobile,
 }: ConversationItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [titleInput, setTitleInput] = useState(conversation.title);
@@ -35,7 +37,6 @@ export function ConversationItem({
   const [sheetOpen, setSheetOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
-  const isMobile = useIsMobile();
 
   // Long-press tracking (touch only — desktop has the hover-revealed ⋯ button)
   const pressTimer = useRef<number | null>(null);
@@ -288,7 +289,7 @@ export function ConversationItem({
                   setMenuPos(null);
                   setIsEditing(true);
                 }}
-                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
               >
                 <PencilIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
                 <span className="flex-1">Rename</span>
@@ -300,7 +301,7 @@ export function ConversationItem({
                   setMenuPos(null);
                   void handleShare();
                 }}
-                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.99]"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
               >
                 <ShareFatIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
                 <span className="flex-1">Share chat</span>
@@ -313,7 +314,7 @@ export function ConversationItem({
                   setMenuPos(null);
                   setShowConfirmDelete(true);
                 }}
-                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.99]"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] active:scale-[0.98]"
               >
                 <TrashIcon aria-hidden className="h-4 w-4 shrink-0" />
                 <span className="flex-1">Delete</span>
@@ -333,4 +334,4 @@ export function ConversationItem({
       )}
     </div>
   );
-}
+});

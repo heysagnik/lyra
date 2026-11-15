@@ -459,12 +459,12 @@ export function Composer({
                           handleEffortChange(next.id);
                         }
                       }}
-                      className="relative flex h-9 w-full cursor-pointer select-none items-center rounded-xl bg-[var(--color-surface-2)] p-1 border border-[var(--color-border)] transition-[border-color,transform] duration-150 ease-out hover:border-[var(--color-border-strong)] active:scale-[0.99] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus)]"
+                      className="relative flex h-9 w-full cursor-pointer select-none items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-2)] p-1 border border-[var(--color-border)] transition-[border-color,transform] duration-[var(--duration-normal)] ease-out hover:border-[var(--color-border-strong)] active:scale-[0.98] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus)]"
                     >
                       {/* Filled segment from the left edge up to the knob */}
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute bottom-1 left-1 top-1 rounded-lg bg-[var(--color-surface-3)] transition-[width] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
+                        className="pointer-events-none absolute bottom-1 left-1 top-1 rounded-[var(--radius-md)] bg-[var(--color-surface-3)] transition-[width] duration-[var(--duration-slow)] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
                         style={{
                           width:
                             effort === "low"
@@ -483,7 +483,7 @@ export function Composer({
                       {/* Active knob — canvas pill riding the fill edge */}
                       <div
                         aria-hidden
-                        className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-canvas)] transition-[left] duration-200 [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.97]"
+                        className="pointer-events-none absolute bottom-1 top-1 w-9 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-canvas)] transition-[left] duration-[var(--duration-slow)] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)] group-active/slider:scale-[0.96]"
                         style={{
                           left:
                             effort === "low"

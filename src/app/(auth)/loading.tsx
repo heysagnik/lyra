@@ -1,6 +1,9 @@
+import { LogoMark } from "@/components/brand/LogoMark";
+
 /**
- * Neutral loading state for auth routes (sign-in / sign-up) so the chat
- * skeleton from the root boundary never flashes under the auth forms.
+ * Brand-consistent loading state for auth routes (sign-in / sign-up) so
+ * the chat skeleton from the root boundary never flashes under the auth
+ * forms. The mark breathes once via opacity — quiet, no spinner.
  */
 export default function AuthLoading() {
   return (
@@ -9,7 +12,7 @@ export default function AuthLoading() {
       aria-busy="true"
       aria-label="Loading"
     >
-      <div className="h-2 w-2 animate-pulse rounded-full bg-[var(--color-text-tertiary)]" />
+      <LogoMark className="h-6 w-6 animate-pulse text-[var(--color-text-tertiary)]" />
     </div>
   );
 }

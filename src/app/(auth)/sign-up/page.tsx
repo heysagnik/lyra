@@ -56,7 +56,7 @@ export default function SignUpPage() {
       {error && (
         <div
           role="alert"
-          className="mt-6 rounded-lg border border-[var(--color-danger)]/40 bg-[var(--color-danger-muted)] p-3 text-sm text-[var(--color-danger)]"
+          className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-danger)]/40 bg-[var(--color-danger-muted)] p-3 text-sm text-[var(--color-danger)]"
         >
           {error}
         </div>
@@ -79,7 +79,7 @@ export default function SignUpPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
-              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-3 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
+              className="block w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-3 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
+              className="block w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
-              className="block w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
+              className="block w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface-1)] py-2.5 pl-11 pr-3 text-sm text-[var(--color-text)] transition-colors placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-focus)] focus:outline-none"
             />
           </div>
         </div>
@@ -138,7 +138,7 @@ export default function SignUpPage() {
         <button
           type="submit"
           disabled={loading}
-          className="h-11 w-full rounded-lg bg-[var(--color-accent)] text-sm font-medium text-[var(--color-on-accent)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
+          className="h-11 w-full rounded-[var(--radius-md)] bg-[var(--color-accent)] text-sm font-medium text-[var(--color-on-accent)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
         >
           {loading ? "Creating account…" : "Sign up"}
         </button>

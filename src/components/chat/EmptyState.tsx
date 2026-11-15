@@ -32,7 +32,7 @@ export function EmptyState() {
   }, []);
 
   return (
-    <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-4 pb-28 sm:pb-32">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-3 pb-28 sm:px-4 sm:pb-32">
       <div
         aria-hidden
         className="fade-in pointer-events-none absolute inset-0 select-none overflow-hidden"

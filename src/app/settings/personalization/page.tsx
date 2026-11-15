@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import { BrainIcon, TrashSimpleIcon } from "@phosphor-icons/react";
+import { SkeletonLine } from "@/components/ui/skeleton";
 import type { Memory } from "@/types";
 
 const KIND_LABELS: Record<Memory["kind"], string> = {
@@ -55,8 +57,12 @@ export default function PersonalizationSettingsPage() {
             <div aria-hidden className="divide-y divide-[var(--color-border)]">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="px-5 py-4">
-                  <div className="skeleton h-3 w-20 rounded-full" />
-                  <div className="mt-2.5 skeleton h-3 w-3/4 rounded-full" />
+                  <SkeletonLine className="h-3 w-20" delay={i * 60} />
+                  <SkeletonLine
+                    className="mt-2.5 h-3"
+                    delay={i * 60 + 30}
+                    style={{ width: i === 1 ? "72%" : "88%" }}
+                  />
                 </div>
               ))}
             </div>

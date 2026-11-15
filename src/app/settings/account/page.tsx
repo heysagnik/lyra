@@ -303,7 +303,7 @@ export default function AccountSettingsPage() {
                           type="button"
                           disabled={revoking !== null}
                           onClick={() => void handleRevoke(row)}
-                          className="rounded-md border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {revoking === row.id ? "Signing out…" : "Sign out"}
                         </button>

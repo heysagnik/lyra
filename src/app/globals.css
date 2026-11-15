@@ -515,6 +515,7 @@ input:focus {
     transparent
   );
   animation: shimmer 1.6s var(--ease-standard) infinite;
+  animation-delay: var(--skeleton-delay, 0ms);
 }
 
 @keyframes shimmer {
@@ -527,6 +528,19 @@ input:focus {
   .skeleton::after {
     animation: none;
   }
+}
+
+/* Platform-aware keyboard shortcuts. The bootstrap script in layout.tsx sets
+   data-platform on <html> before first paint, so the right hint renders
+   immediately — no effect, no extra render, no swap. */
+[data-shortcut] {
+  display: none;
+}
+[data-platform="apple"] [data-shortcut="apple"] {
+  display: revert;
+}
+[data-platform="other"] [data-shortcut="generic"] {
+  display: revert;
 }
 
 @media (prefers-reduced-motion: reduce) {

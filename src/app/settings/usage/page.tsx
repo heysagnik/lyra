@@ -64,7 +64,7 @@ export default function UsageSettingsPage() {
               className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]"
             >
               <div
-                className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-300 ease-out"
+                className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-[var(--duration-slow)] ease-out"
                 style={{ width: `${Math.min(100, Math.max(percentUsed, 2))}%` }}
               />
             </div>

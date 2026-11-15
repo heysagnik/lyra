@@ -29,8 +29,10 @@ export const viewport: Viewport = {
   ],
 };
 
-// Runs before first paint so a saved theme never flashes the wrong canvas.
-const THEME_BOOTSTRAP = `try{var t=localStorage.getItem("lyra-theme");if(t==="light"||t==="dark"||t==="system"){document.documentElement.dataset.theme=t;}}catch(e){}`;
+// Runs before first paint so a saved theme never flashes the wrong canvas,
+// and so the platform is known before any ⌘K / Ctrl K hint is painted.
+const THEME_BOOTSTRAP = `try{var t=localStorage.getItem("lyra-theme");if(t==="light"||t==="dark"||t==="system"){document.documentElement.dataset.theme=t;}}catch(e){}
+try{document.documentElement.dataset.platform=/Mac|iPhone|iPad/i.test(navigator.userAgent)?"apple":"other";}catch(e){}`;
 
 export default function RootLayout({
   children,
