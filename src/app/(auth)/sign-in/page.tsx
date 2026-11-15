@@ -114,7 +114,7 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={loading}
-          className="h-11 w-full rounded-[var(--radius-md)] bg-[var(--color-accent)] text-sm font-medium text-[var(--color-on-accent)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
+          className="h-11 w-full rounded-[var(--radius-md)] bg-[var(--color-primary)] text-sm font-medium text-[var(--color-on-primary)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>

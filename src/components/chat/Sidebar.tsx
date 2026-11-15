@@ -159,11 +159,11 @@ export const Sidebar = memo(function Sidebar({
                 }
               }}
               title="New chat"
-              className="group flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius-lg)] bg-[var(--color-accent)] px-3 text-sm font-medium text-[var(--color-on-accent)] transition-[background-color,transform,box-shadow] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] hover:bg-[var(--color-accent-hover)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+              className="group flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius-lg)] bg-[var(--color-primary)] px-3 text-sm font-medium text-[var(--color-on-primary)] transition-[background-color,transform,box-shadow] duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:scale-[0.98]"
             >
               <PlusIcon
                 weight="bold"
-                className="h-4 w-4 shrink-0 transition-transform duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] group-hover:rotate-90"
+                className="h-4 w-4 shrink-0"
               />
               <span className="flex-1 truncate text-left">New chat</span>
               {/* Platform hint, resolved before first paint by the bootstrap
@@ -173,7 +173,7 @@ export const Sidebar = memo(function Sidebar({
                 data-shortcut="generic"
                 className="shrink-0 rounded-[var(--radius-md)] px-1.5 py-0.5 font-sans text-[10px] font-medium tracking-wide"
                 style={{
-                  background: "color-mix(in srgb, var(--color-on-accent) 14%, transparent)",
+                  background: "color-mix(in srgb, var(--color-on-primary) 14%, transparent)",
                 }}
               >
                 Ctrl K
@@ -183,7 +183,7 @@ export const Sidebar = memo(function Sidebar({
                 data-shortcut="apple"
                 className="shrink-0 rounded-[var(--radius-md)] px-1.5 py-0.5 font-sans text-[10px] font-medium tracking-wide"
                 style={{
-                  background: "color-mix(in srgb, var(--color-on-accent) 14%, transparent)",
+                  background: "color-mix(in srgb, var(--color-on-primary) 14%, transparent)",
                 }}
               >
                 ⌘K

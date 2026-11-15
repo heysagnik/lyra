@@ -522,7 +522,7 @@ export function Composer({
                 type="button"
                 onClick={onStop}
                 aria-label="Stop generating"
-                className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
+                className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] transition-[transform,opacity] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96]"
               >
                 <SquareIcon className="h-2.5 w-2.5 fill-current" />
               </button>
@@ -534,7 +534,7 @@ export function Composer({
                 aria-label="Send message"
                 className={`flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full transition-[background-color,color,transform,opacity] duration-[var(--duration-fast)] active:scale-[0.96] ${
                   canSend
-                    ? "bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]"
                     : "cursor-not-allowed bg-[var(--color-surface-3)] text-[var(--color-text-tertiary)]"
                 }`}
               >
