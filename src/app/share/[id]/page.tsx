@@ -5,7 +5,7 @@ import { getSharedConversation } from "@/lib/db/queries/conversations";
 import { listConversationMessages } from "@/lib/db/queries/messages";
 import { StaticMarkdown } from "@/components/chat/StaticMarkdown";
 import { SourcesRow } from "@/components/chat/SourcesRow";
-import { CaretDownIcon } from "@phosphor-icons/react";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Wordmark } from "@/components/brand/Wordmark";
 
