@@ -91,6 +91,7 @@ export function ChatContainer({
         id: m.id,
         role: (m.role === "tool" ? "assistant" : m.role) as "user" | "assistant" | "system",
         content: m.content,
+        reasoning: m.reasoning || undefined,
         sources: (m.sources as SearchSource[] | null) || undefined,
         toolCalls: m.toolCalls,
         createdAt: new Date(m.createdAt),

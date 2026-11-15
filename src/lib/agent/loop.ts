@@ -386,6 +386,13 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             finalText = await streamResult.text;
           } catch {}
 
+          // Reasoning channel (Nemotron NIM via middleware, Groq gpt-oss
+          // natively) — collected separately so it persists out of content.
+          let turnReasoning = "";
+          try {
+            turnReasoning = (await streamResult.reasoningText) ?? "";
+          } catch {}
+
           // ─── Citation token normalization ──────────────────────────
           // Some models (Nemotron/GPT-lineage trained on OpenAI browsing
           // data) regress to the internal 【7†L1-L3】 token format instead
@@ -510,6 +517,14 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               }
             } catch {}
             try {
+              const rescueReasoning = await rescueStream.reasoningText;
+              if (rescueReasoning) {
+                turnReasoning = turnReasoning
+                  ? turnReasoning + "\n\n" + rescueReasoning
+                  : rescueReasoning;
+              }
+            } catch {}
+            try {
               rescueUsage = await rescueStream.usage;
             } catch {}
           }
@@ -561,6 +576,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               conversationId,
               role: "assistant",
               content: finalText,
+              reasoning: turnReasoning.trim() || undefined,
               toolCalls:
                 executedQueries.length > 0
                   ? executedQueries.map((query) => ({

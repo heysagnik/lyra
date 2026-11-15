@@ -41,7 +41,7 @@ export function SourcesRow({ sources }: SourcesRowProps) {
                 <span className="max-w-[150px] truncate">
                   {source.title || hostname}
                 </span>
-                <span className="font-coordinate text-[10px] text-[var(--color-text-tertiary)]">
+                <span className="min-w-0 max-w-[140px] truncate font-coordinate text-[10px] text-[var(--color-text-tertiary)]">
                   {hostname}
                 </span>
                 <ArrowSquareOutIcon aria-hidden className="h-3 w-3 opacity-50" />

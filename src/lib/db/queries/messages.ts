@@ -1,14 +1,21 @@
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { messages } from "@/lib/db/schema";
+import { hasChannelMarkers, splitChannelText } from "@/lib/llm/channels";
 import type { Message, Role, SearchSource } from "@/types";
 
 function toDomainMessage(row: typeof messages.$inferSelect): Message {
+  // Legacy rows persisted before channel-aware persistence may still carry
+  // Nemotron/harmony reasoning tokens inline in content. Split them at read
+  // time so the UI never renders raw tokens, regardless of when the row was
+  // written.
+  const split = hasChannelMarkers(row.content) ? splitChannelText(row.content) : null;
   return {
     id: row.id,
     conversationId: row.conversationId,
     role: row.role as Role,
-    content: row.content,
+    content: split ? split.content || row.content : row.content,
+    reasoning: row.reasoning ?? (split?.reasoning || null),
     toolCalls: row.toolCalls,
     sources: (row.sources as SearchSource[] | null) ?? null,
     model: row.model,
@@ -24,6 +31,7 @@ export async function createMessage(data: {
   conversationId: string;
   role: Role;
   content: string;
+  reasoning?: string;
   toolCalls?: unknown;
   sources?: SearchSource[];
   model?: string;
@@ -39,6 +47,7 @@ export async function createMessage(data: {
       conversationId: data.conversationId,
       role: data.role,
       content: data.content,
+      reasoning: data.reasoning ?? null,
       toolCalls: data.toolCalls,
       sources: data.sources,
       model: data.model,

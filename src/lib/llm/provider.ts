@@ -1,5 +1,6 @@
 import { createGroq } from "@ai-sdk/groq";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { wrapLanguageModel } from "ai";
 import type { LanguageModel } from "ai";
 import { getEnv } from "@/lib/env";
 import {
@@ -8,6 +9,7 @@ import {
   PROVIDERS,
   resolveModelDefinition,
 } from "./models";
+import { channelReasoningMiddleware } from "./channels";
 
 export * from "./models";
 
@@ -64,9 +66,18 @@ export function getLanguageModel(modelIdOrAlias?: string): {
 
   let model: LanguageModel;
   if (definition.providerId === "nvidia-nim") {
-    model = getNvidiaNimInstance()(definition.modelId);
+    // NIM passes Nemotron's inline reasoning-channel tokens (<|channel>thought
+    // … <channel|>) through as literal content — the endpoint does not parse
+    // them. The middleware rewrites those markers into proper reasoning stream
+    // parts so text/results never contain them and the UI gets a clean split.
+    model = wrapLanguageModel({
+      model: getNvidiaNimInstance()(definition.modelId),
+      middleware: channelReasoningMiddleware,
+    });
   } else {
-    // Groq is the default provider
+    // Groq is the default provider. Its API parses harmony channels
+    // server-side (reasoning arrives in a separate field), so no middleware
+    // is needed.
     model = getGroqInstance()(definition.modelId);
   }
 

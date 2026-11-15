@@ -5,6 +5,7 @@ import { getSharedConversation } from "@/lib/db/queries/conversations";
 import { listConversationMessages } from "@/lib/db/queries/messages";
 import { StaticMarkdown } from "@/components/chat/StaticMarkdown";
 import { SourcesRow } from "@/components/chat/SourcesRow";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { Wordmark } from "@/components/brand/Wordmark";
 
@@ -81,12 +82,23 @@ export default async function SharedChatPage({
                     {m.content}
                   </div>
                 </div>
-              ) : m.content ? (
+              ) : m.content || m.reasoning ? (
                 <div
                   key={m.id}
                   className="w-full py-2 text-sm [content-visibility:auto] [contain-intrinsic-size:auto_120px]"
                 >
-                  <StaticMarkdown content={m.content} />
+                  {m.reasoning ? (
+                    <details className="group mb-1">
+                      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:text-[var(--color-text-secondary)]">
+                        Thought process
+                        <CaretDownIcon aria-hidden className="h-3 w-3 transition-transform duration-[var(--duration-fast)] group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap border-l border-[var(--color-border)] pl-3 text-xs leading-relaxed text-[var(--color-text-tertiary)]">
+                        {m.reasoning}
+                      </div>
+                    </details>
+                  ) : null}
+                  {m.content ? <StaticMarkdown content={m.content} /> : null}
                   {m.sources && m.sources.length > 0 && (
                     <SourcesRow sources={m.sources} />
                   )}

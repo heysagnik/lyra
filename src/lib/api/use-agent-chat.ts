@@ -21,6 +21,8 @@ export interface AgentChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  /** Model reasoning (thinking channel) — rendered as a collapsible panel. */
+  reasoning?: string;
   parts?: ChatMessagePart[];
   sources?: SearchSource[];
   toolCalls?: unknown | null;
@@ -115,6 +117,9 @@ export function useAgentChat({
       const initialMap: Record<string, SearchSource[]> = {};
       const hydrated = initialMessages.map((m) => {
         const parts: ChatMessagePart[] = [];
+        if (m.reasoning) {
+          parts.push({ type: "reasoning", text: m.reasoning, state: "done" });
+        }
         if (m.content) {
           parts.push({ type: "text", text: m.content });
         }
@@ -126,6 +131,7 @@ export function useAgentChat({
           id: m.id,
           role: m.role,
           parts,
+          reasoning: m.reasoning,
           sources: m.sources,
           toolCalls: m.toolCalls,
           createdAt: m.createdAt,
@@ -207,6 +213,14 @@ export function useAgentChat({
           ? (m as unknown as { content?: string }).content!
           : "");
 
+      // Model reasoning, live (reasoning-delta stream parts) or hydrated
+      // (a reasoning part built from the persisted column).
+      const reasoning =
+        parts
+          .filter((p) => p.type === "reasoning" && typeof p.text === "string")
+          .map((p) => p.text)
+          .join("\n\n") || undefined;
+
       for (const p of parts) {
         if (p.type === "data-sources" && p.data) {
           const s = (p.data as { items?: SearchSource[] }).items;
@@ -247,6 +261,7 @@ export function useAgentChat({
         id: m.id,
         role: m.role as "user" | "assistant" | "system",
         content: textContent,
+        reasoning,
         parts,
         sources: finalSources,
         toolCalls: toolCalls && (toolCalls as unknown[]).length > 0 ? toolCalls : undefined,

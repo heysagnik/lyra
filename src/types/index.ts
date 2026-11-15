@@ -30,6 +30,7 @@ export interface Message {
   conversationId: string;
   role: Role;
   content: string;
+  reasoning?: string | null;
   toolCalls?: unknown | null;
   sources?: SearchSource[] | null;
   model?: string | null;

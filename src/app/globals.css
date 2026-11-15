@@ -275,6 +275,15 @@
 /* Component aliases removed — all components now use the canonical
    --color-* tokens directly. */
 
+/* Fixed layout guarantee: the app never pans horizontally. `clip` (not
+   `hidden`) so the viewport never becomes a horizontal scroll container and
+   position:sticky headers keep working. Individual scroll areas (code blocks,
+   tables, the attachment chip row) still pan inside themselves by design. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--color-canvas);
   color: var(--color-text);

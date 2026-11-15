@@ -112,7 +112,7 @@ export function MessageList({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto overscroll-contain px-3 py-6 sm:px-4 pb-36 sm:pb-40"
+        className="h-full overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-6 sm:px-4 pb-36 sm:pb-40"
       >
         <div className="mx-auto max-w-[42rem]">
           {visibleMessages.map((msg, idx) => (

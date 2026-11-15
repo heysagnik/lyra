@@ -22,6 +22,13 @@
       "when": 1794656471306,
       "tag": "0002_sloppy_nightmare",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794720548135,
+      "tag": "0003_rich_micromax",
+      "breakpoints": true
     }
   ]
 }

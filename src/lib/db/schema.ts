@@ -117,6 +117,9 @@ export const messages = pgTable(
       .references(() => conversations.id, { onDelete: "cascade" }),
     role: text("role", { enum: ["user", "assistant", "tool"] }).notNull(),
     content: text("content").notNull().default(""),
+    // Model reasoning (thinking channel) — kept separate from content so the
+    // UI can render it as a collapsible panel instead of raw tokens.
+    reasoning: text("reasoning"),
     toolCalls: jsonb("tool_calls"),
     sources: jsonb("sources"),
     model: text("model"),
