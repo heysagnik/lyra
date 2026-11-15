@@ -22,16 +22,23 @@ export const MAX_SOURCES_PER_TURN = 10;
 export const MAX_TOKENS_OUT = 1024;
 
 /**
- * Per-turn effort tiers: generation-step budget (each step may think,
- * call web_search, or answer — the ReAct loop) and output token ceiling.
+ * Per-turn effort tiers: generation-step budget and output token ceiling.
+ * Iterations include the mandatory plan-first think step (one extra step
+ * compared to a flat ReAct loop: think → search... → answer).
  */
 export const EFFORT_BUDGET = {
-  low: { iterations: 2, maxTokensOut: 512 },
-  standard: { iterations: 4, maxTokensOut: MAX_TOKENS_OUT },
-  max: { iterations: 6, maxTokensOut: 4096 },
+  low: { iterations: 3, maxTokensOut: 512 },
+  standard: { iterations: 5, maxTokensOut: MAX_TOKENS_OUT },
+  max: { iterations: 7, maxTokensOut: 4096 },
 } as const;
 
 export type Effort = keyof typeof EFFORT_BUDGET;
+
+/** Max output tokens for the structured answer-verification judge pass */
+export const VERIFY_MAX_TOKENS_OUT = 400;
+
+/** Max problems the verification judge may report per turn */
+export const VERIFY_MAX_PROBLEMS = 4;
 
 export const SEARCH_CACHE_TTL_S = 300;
 

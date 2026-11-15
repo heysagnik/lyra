@@ -10,7 +10,6 @@ import {
   SEARCH_CACHE_TTL_S,
   SEARCH_TIMEOUT_MS,
   RATE_PER_MIN,
-  RATE_PER_DAY,
   PLAN_DAILY_RATE,
   resolveDailyRate,
   MAX_INFLIGHT,
@@ -26,12 +25,12 @@ describe("System Budgets & Limits", () => {
     expect(TARGET_PROMPT_TOKENS).toBe(2600);
   });
 
-  it("defines the ReAct tool-loop budget per effort tier", () => {
+  it("defines the ReAct tool-loop budget per effort tier (incl. plan step)", () => {
     expect(MAX_SEARCH_CALLS_PER_TURN).toBe(5);
     expect(MAX_SOURCES_PER_TURN).toBe(10);
-    expect(EFFORT_BUDGET.low.iterations).toBe(2);
-    expect(EFFORT_BUDGET.standard.iterations).toBe(4);
-    expect(EFFORT_BUDGET.max.iterations).toBe(6);
+    expect(EFFORT_BUDGET.low.iterations).toBe(3);
+    expect(EFFORT_BUDGET.standard.iterations).toBe(5);
+    expect(EFFORT_BUDGET.max.iterations).toBe(7);
     expect(EFFORT_BUDGET.standard.maxTokensOut).toBe(MAX_TOKENS_OUT);
   });
 

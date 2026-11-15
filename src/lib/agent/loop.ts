@@ -44,6 +44,8 @@ import {
 } from "@/lib/tools/web-search";
 import { requireUser } from "@/lib/auth/require-user";
 import { checkRateLimits, acquireOutputTokenBudget } from "@/lib/ratelimit/limiters";
+import { thinkTool } from "@/lib/tools/think";
+import { verifyAnswerAgainstEvidence } from "./verify";
 import {
   getConversation,
   createConversation,
@@ -274,7 +276,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       },
     });
 
-    const tools = searchEnabled ? { web_search: customSearchTool } : undefined;
+    const tools = searchEnabled ? { web_search: customSearchTool, think: thinkTool } : undefined;
 
     const effortBudget = EFFORT_BUDGET[(input.effort ?? "standard") as Effort];
     const modelSelection = getLanguageModel(input.model);
@@ -324,8 +326,17 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
       system: ctx.systemPrompt,
       messages,
       tools,
-      prepareStep: ({ stepNumber }) =>
-        stepNumber >= effortBudget.iterations - 1 ? { toolChoice: "none" as const } : undefined,
+      prepareStep: ({ stepNumber }) => {
+        // Plan-first (Anthropic agent guidance + plan-and-execute):
+        // step 0 is always a structured think call, so every research
+        // turn opens with an explicit plan instead of a silent decision.
+        if (searchEnabled && stepNumber === 0) {
+          return { toolChoice: { type: "tool" as const, toolName: "think" } };
+        }
+        return stepNumber >= effortBudget.iterations - 1
+          ? { toolChoice: "none" as const }
+          : undefined;
+      },
       stopWhen: stepCountIs(effortBudget.iterations),
       maxOutputTokens: effectiveMaxTokensOut,
       maxRetries: 3,
@@ -403,133 +414,118 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             // Standalone 【7】 with no line-range marker
             .replace(/【(\d+)】/g, "[$1]");
 
-          // ─── Incomplete-answer detection + rescue pass ───────────────
-          // The ReAct loop can end with visible text that is NOT an answer:
-          // the model narrates intent ("those results aren't relevant — let me
-          // search..."), stops without acting, and the narration counts as
-          // text. Detect narration-style endings and force a completion:
-          //   - evidence exists → toolless synthesis from the ledger
-          //   - nothing retrieved → one more tool-enabled attempt
-          const hasCitations = /\[\d+\]/.test(finalText);
-          const narrationStart =
-            /^(?:\[[^\]]{1,32}\]\s*)?(?:thinking|ok,|hmm|well,|let me (?!know)|let's|i'll|i will|i am going to|i'm going to|grab|those results|that (?:last )?result|the results|more relevant|searching|first,)/i;
-          const needsRescue =
-            !finalText.trim() ||
-            (executedQueries.length > 0 && !hasCitations && finalText.length < 400) ||
-            (!hasCitations && finalText.length < 240 && narrationStart.test(finalText));
-
+          // ─── Structured verification + repair pass ───────────────
+          // Evaluator-optimizer pattern: an independent Zod-constrained
+          // judge (verify.ts) compares the draft against the evidence
+          // ledger and the user's question. needs_repair — uncited claims,
+          // unanswered aspects, narration-instead-of-answer, or denial of
+          // an event a retrieved source reports — triggers ONE bounded,
+          // toolless repair generation streamed into the same message.
+          // This replaces the brittle regex detectors (narration openers,
+          // denial phrases) that could only catch failure patterns someone
+          // had already observed in production.
           let rescueUsage: {
             inputTokens?: number;
             outputTokens?: number;
             inputTokenDetails?: { cacheReadTokens?: number };
           } | null = null;
+          let verifyUsage: { inputTokens?: number; outputTokens?: number } | null =
+            null;
 
-          // ─── Contradiction rescue ──────────────────────────────────
-          // The most damaging failure observed in production: the user
-          // asserts an event, the evidence ledger CONTAINS a source whose
-          // title/snippet mentions that event, yet the model answers
-          // "there is no credible evidence". Detect that exact mismatch
-          // and force a re-read of the matching sources.
-          const DENIAL_RE =
-            /no (credible |verifiable |reliable |convincing )?(evidence|news|report|reporting|confirmation|mention|indication)|there is no |not (been )?(confirmed|verified|reported|backed)|doesn'?t appear to be|no sign of|no public/i;
-          const assertedEvents = extractEventKeywords(input.text);
-          const matchingEvidence = assertedEvents.length > 0
-            ? turnSources.filter((src) =>
-                assertedEvents.some((kw) => {
-                  const hay = (src.title + " " + src.snippet).toLowerCase();
-                  return hay.includes(kw);
-                })
-              )
-            : [];
-          const contradictsEvidence =
-            !needsRescue &&
-            finalText.trim().length > 0 &&
-            matchingEvidence.length > 0 &&
-            DENIAL_RE.test(finalText);
-
-          if (needsRescue || contradictsEvidence) {
-            const hasEvidence = turnSources.length > 0;
-            const rescueStream = streamText({
-              model: modelSelection.model,
-              system: ctx.systemPrompt,
-              // Evidence in hand → answer directly, no tools. Otherwise the
-              // previous attempt never actually searched → retry WITH tools,
-              // but tightly bounded and forced to end with a real answer.
-              tools: hasEvidence || !searchEnabled ? undefined : tools,
-              stopWhen: hasEvidence || !searchEnabled ? undefined : stepCountIs(3),
-              prepareStep:
-                hasEvidence || !searchEnabled
-                  ? undefined
-                  : ({ stepNumber }) =>
-                      stepNumber >= 2 ? { toolChoice: "none" as const } : undefined,
-              messages: [
-                ...messages,
-                {
-                  role: "user" as const,
-                  content: hasEvidence
-                    ? contradictsEvidence
-                      ? "CORRECTION REQUIRED. Your previous answer denied that anything happened, but the retrieved evidence below contains sources whose titles or snippets DIRECTLY mention it: " +
-                        formatSourcesForModel(matchingEvidence) +
-                        ". Re-read that evidence carefully and give the corrected, complete final answer to the user's last message now, citing inline as [n] matching the evidence numbering. If, after genuinely re-reading, the evidence still does not support the event, say so explicitly and quote which sources you checked.\n\nFULL EVIDENCE:\n" +
-                        formatSourcesForModel(turnSources)
-                      : `FINAL ANSWER REQUIRED. You already ran these web searches this turn: ${executedQueries.map((q) => `"${q}"`).join(", ")}. Your previous response stopped after narrating intent instead of answering. Do not call any tools and do not narrate. Using only the numbered evidence below, write the complete final answer to the user's last message now: cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm.\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`
-                    : `FINAL ANSWER REQUIRED. Your previous response stopped after narrating intent instead of answering (it said: "${finalText.trim().slice(0, 160)}"). Do not write intent narration. If the question needs current information, call web_search now with a specific keyword query, reflect on the results, and then give the complete final answer with inline [n] citations. Otherwise answer directly. The turn must end with the complete answer text.`,
-                },
-              ],
-              maxOutputTokens: effectiveMaxTokensOut,
-              maxRetries: 3,
-              onError: ({ error }) => {
-                logStructuredError({
-                  userId: user.id,
-                  conversationId,
-                  code: "PROVIDER",
-                  msg: "Rescue generation error",
-                  error: error instanceof Error ? error.message : String(error),
-                });
-              },
+          if (executedQueries.length > 0 && finalText.trim()) {
+            const verification = await verifyAnswerAgainstEvidence({
+              modelId: activeModelName,
+              question: input.text,
+              executedQueries,
+              sources: turnSources,
+              draftAnswer: finalText,
             });
+            verifyUsage = verification?.usage ?? null;
 
-            writer.merge(
-              rescueStream.toUIMessageStream().pipeThrough(
-                // The rescue continues the SAME assistant message: dropping
-                // its `start` chunk keeps the client from resetting into a
-                // second bubble mid-answer.
-                new TransformStream({
-                  transform(chunk, controller) {
-                    if ((chunk as { type?: string }).type !== "start") {
-                      controller.enqueue(chunk);
-                    }
+            if (verification?.verdict === "needs_repair") {
+              const problemLines = verification.problems
+                .map((p) => `- ${p}`)
+                .join("\n");
+              const repairInstructions = verification.repairInstructions
+                ? `\nVerifier instructions: ${verification.repairInstructions}`
+                : "";
+              // A substantive cited draft stays visible and gets the
+              // correction appended; a narration fragment or empty draft
+              // is replaced outright so the persisted message is the
+              // clean final answer.
+              const hadSubstantiveDraft =
+                finalText.trim().length >= 240 && /\[\d+\]/.test(finalText);
+
+              const rescueStream = streamText({
+                model: modelSelection.model,
+                system: ctx.systemPrompt,
+                // Evidence is in hand → bounded, toolless repair.
+                tools: undefined,
+                messages: [
+                  ...messages,
+                  {
+                    role: "user" as const,
+                    content:
+                      "CORRECTION REQUIRED. An independent verification of your draft answer found these problems:\n" +
+                      problemLines +
+                      repairInstructions +
+                      "\n\nWrite the complete corrected final answer to the user's last message now. Cite inline as [n] matching the evidence numbering, and state plainly anything the evidence could not confirm. Do not call any tools and do not narrate intent." +
+                      `\n\nEVIDENCE:\n${formatSourcesForModel(turnSources)}`,
                   },
-                })
-              )
-            );
+                ],
+                maxOutputTokens: effectiveMaxTokensOut,
+                maxRetries: 3,
+                onError: ({ error }) => {
+                  logStructuredError({
+                    userId: user.id,
+                    conversationId,
+                    code: "PROVIDER",
+                    msg: "Repair generation error",
+                    error: error instanceof Error ? error.message : String(error),
+                  });
+                },
+              });
 
-            try {
-              const rescueText = await rescueStream.text;
-              if (contradictsEvidence && rescueText.trim()) {
-                // UI sees: original answer + correction appended; persist both.
-                finalText =
-                  finalText.trim() +
-                  "\n\n**Update after re-checking the evidence:** " +
-                  rescueText.trim();
-              } else {
-                finalText = rescueText;
-              }
-            } catch {}
-            try {
-              const rescueReasoning = await rescueStream.reasoningText;
-              if (rescueReasoning) {
-                turnReasoning = turnReasoning
-                  ? turnReasoning + "\n\n" + rescueReasoning
-                  : rescueReasoning;
-              }
-            } catch {}
-            try {
-              rescueUsage = await rescueStream.usage;
-            } catch {}
+              writer.merge(
+                rescueStream.toUIMessageStream().pipeThrough(
+                  // The repair continues the SAME assistant message: dropping
+                  // its `start` chunk keeps the client from resetting into a
+                  // second bubble mid-answer.
+                  new TransformStream({
+                    transform(chunk, controller) {
+                      if ((chunk as { type?: string }).type !== "start") {
+                        controller.enqueue(chunk);
+                      }
+                    },
+                  })
+                )
+              );
+
+              try {
+                const rescueText = await rescueStream.text;
+                if (rescueText.trim()) {
+                  finalText = hadSubstantiveDraft
+                    ? finalText.trim() +
+                      "\n\n**Update after verifying the evidence:** " +
+                      rescueText.trim()
+                    : rescueText;
+                }
+              } catch {}
+              try {
+                const rescueReasoning = await rescueStream.reasoningText;
+                if (rescueReasoning) {
+                  turnReasoning = turnReasoning
+                    ? turnReasoning + "\n\n" + rescueReasoning
+                    : rescueReasoning;
+                }
+              } catch {}
+              try {
+                rescueUsage = await rescueStream.usage;
+              } catch {}
+            }
           }
 
-          // Even the rescue could not produce text. Emit and persist a
+          // Even the repair could not produce text. Emit and persist a
           // visible fallback so the user never gets a silently dead turn
           // (observed in production: Groq OTPM exhaustion 429s leave the
           // last user message with no assistant reply at all).
@@ -565,8 +561,14 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             usage = await streamResult.usage;
           } catch {}
 
-          const tokensIn = (usage?.inputTokens ?? 0) + (rescueUsage?.inputTokens ?? 0);
-          const tokensOut = (usage?.outputTokens ?? 0) + (rescueUsage?.outputTokens ?? 0);
+          const tokensIn =
+            (usage?.inputTokens ?? 0) +
+            (rescueUsage?.inputTokens ?? 0) +
+            (verifyUsage?.inputTokens ?? 0);
+          const tokensOut =
+            (usage?.outputTokens ?? 0) +
+            (rescueUsage?.outputTokens ?? 0) +
+            (verifyUsage?.outputTokens ?? 0);
           const cachedIn =
             (usage?.inputTokenDetails?.cacheReadTokens ?? 0) +
             (rescueUsage?.inputTokenDetails?.cacheReadTokens ?? 0);

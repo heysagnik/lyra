@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
 import { BrainIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import { SkeletonLine } from "@/components/ui/skeleton";
 import type { Memory } from "@/types";
