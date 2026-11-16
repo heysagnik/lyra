@@ -141,6 +141,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         };
 
         try {
+          write({ type: "start", messageId: crypto.randomUUID() });
           write({ type: "data-meta", data: { conversationId, title: conversationTitle } });
 
           const plan = await planResearch({ question: input.text, history, modelId: HELPER_MODEL_ID });
@@ -190,7 +191,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               onError: ({ error }) => logError("PROVIDER", "Answer generation error", error),
             });
 
-          // A follow-up generation continues the same assistant message: drop its `start` chunk.
+          // Every generation continues the same assistant message: drop its own `start` chunk.
           const continueMessage = <T,>(stream: ReadableStream<T>) =>
             stream.pipeThrough(
               new TransformStream<T, T>({
@@ -201,7 +202,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             );
 
           const first = generate(baseMessages);
-          writer.merge(first.toUIMessageStream());
+          writer.merge(continueMessage(first.toUIMessageStream()));
 
           let finalText = "";
           let reasoning = "";
