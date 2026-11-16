@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CaretRightIcon, SignOutIcon, EnvelopeSimpleIcon } from "@phosphor-icons/react";
 import { signOut, useSession, revokeSession, revokeOtherSessions } from "@/lib/auth/client";
 import toast from "react-hot-toast";
+import { LogoSpinner } from "@/components/brand/LogoSpinner";
 
 interface SessionRow {
   id: string;
@@ -302,9 +303,16 @@ export default function AccountSettingsPage() {
                           type="button"
                           disabled={revoking !== null}
                           onClick={() => void handleRevoke(row)}
-                          className="rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-secondary)] transition-colors duration-[var(--duration-fast)] hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {revoking === row.id ? "Signing out…" : "Sign out"}
+                          {revoking === row.id ? (
+                            <>
+                              <LogoSpinner className="h-3.5 w-3.5" />
+                              Signing out…
+                            </>
+                          ) : (
+                            "Sign out"
+                          )}
                         </button>
                       )}
                     </span>
@@ -318,11 +326,16 @@ export default function AccountSettingsPage() {
                     type="button"
                     disabled={revoking !== null}
                     onClick={() => void handleRevokeOthers()}
-                    className="text-xs font-medium text-[var(--color-accent)] transition-opacity duration-[var(--duration-fast)] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-accent)] transition-opacity duration-[var(--duration-fast)] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {revoking === "others"
-                      ? "Signing out…"
-                      : "Sign out all other devices"}
+                    {revoking === "others" ? (
+                      <>
+                        <LogoSpinner className="h-3.5 w-3.5" />
+                        Signing out…
+                      </>
+                    ) : (
+                      "Sign out all other devices"
+                    )}
                   </button>
                 </li>
               )}

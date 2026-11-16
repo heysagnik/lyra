@@ -1,69 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { CheckIcon, CopyIcon, ArrowsClockwiseIcon, CaretDownIcon } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { CheckIcon, CopyIcon, ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { Markdown } from "./Markdown";
 import { SourcesRow } from "./SourcesRow";
-import { ToolBadge } from "./ToolBadge";
+import { ActivityTimeline, type SearchState } from "./ActivityTimeline";
 import type { AgentChatMessage } from "@/lib/api/use-agent-chat";
 
 export interface MessageBubbleProps {
   message: AgentChatMessage;
   isLatestStreaming?: boolean;
   onRegenerate?: () => void;
-}
-
-function ThinkingPanel({
-  reasoning,
-  isStreaming,
-  hasAnswer,
-}: {
-  reasoning: string;
-  isStreaming: boolean;
-  hasAnswer: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const autoOpenedRef = useRef(false);
-
-  useEffect(() => {
-    if (isStreaming && !hasAnswer && reasoning) {
-      autoOpenedRef.current = true;
-      setOpen(true);
-    } else if (hasAnswer && autoOpenedRef.current) {
-      autoOpenedRef.current = false;
-      setOpen(false);
-    }
-  }, [isStreaming, hasAnswer, reasoning]);
-
-  return (
-    <div className="py-0.5">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="group flex min-h-6 items-center gap-1.5 rounded-[var(--radius-sm)] py-1 text-xs text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:text-[var(--color-text-secondary)]"
-      >
-        {isStreaming && !hasAnswer ? (
-          <span
-            aria-hidden
-            className="thinking-star h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-text-secondary)]"
-          />
-        ) : null}
-        <span>{isStreaming && !hasAnswer ? "Thinking…" : "Thought process"}</span>
-        <CaretDownIcon
-          aria-hidden
-          className={`h-3 w-3 shrink-0 transition-transform duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-      {open ? (
-        <div className="mt-1 max-h-72 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words border-l border-[var(--color-border)] pl-3 text-xs leading-relaxed text-[var(--color-text-tertiary)]">
-          {reasoning}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function relativeTime(date: Date): string {
@@ -152,12 +99,22 @@ export function MessageBubble({
     (toolPart as { args?: { query?: string } })?.args?.query ||
     (toolPart as { toolInvocation?: { args?: { query?: string } } })?.toolInvocation?.args
       ?.query;
-  pushQuery(partInput);
+  if (typeof partInput === "string") partInput.split(" · ").forEach(pushQuery);
 
   const hasToolPart =
     !!toolPart ||
     Boolean(message.sources && message.sources.length > 0) ||
     Boolean(message.toolCalls && (message.toolCalls as unknown[]).length > 0);
+
+  const sourceCount = message.sources?.length ?? 0;
+  const toolState = (toolPart as { state?: string } | undefined)?.state;
+  const toolOutput = (toolPart as { output?: { count?: number } } | undefined)?.output;
+  let searchState: SearchState = "none";
+  if (hasToolPart) {
+    const finished = toolState === "output-available" || !isLatestStreaming || sourceCount > 0;
+    if (!finished) searchState = "running";
+    else searchState = sourceCount === 0 && (toolOutput?.count ?? 0) === 0 ? "empty" : "done";
+  }
 
   if (!message.content && !message.reasoning && !hasToolPart && !isLatestStreaming && !message.sources?.length) {
     return null;
@@ -165,27 +122,16 @@ export function MessageBubble({
 
   return (
     <div className="w-full py-3">
-      {hasToolPart && <ToolBadge queries={toolQueries} isComplete={!isLatestStreaming} />}
+      <ActivityTimeline
+        reasoning={message.reasoning}
+        queries={toolQueries}
+        searchState={searchState}
+        sourceCount={sourceCount}
+        answerStarted={Boolean(message.content)}
+        isStreaming={isLatestStreaming}
+      />
 
-      {message.reasoning ? (
-        <ThinkingPanel
-          reasoning={message.reasoning}
-          isStreaming={isLatestStreaming}
-          hasAnswer={Boolean(message.content)}
-        />
-      ) : null}
-
-      {message.content ? (
-        <Markdown content={message.content} sources={message.sources} />
-      ) : isLatestStreaming ? (
-        <div className="flex items-center gap-2 py-1 text-xs text-[var(--color-text-tertiary)]">
-          <span
-            aria-hidden
-            className="thinking-star h-1.5 w-1.5 rounded-full bg-[var(--color-text-secondary)]"
-          />
-          <span>Thinking…</span>
-        </div>
-      ) : null}
+      {message.content ? <Markdown content={message.content} sources={message.sources} /> : null}
 
       {message.sources && message.sources.length > 0 && (
         <SourcesRow sources={message.sources} />

@@ -596,21 +596,31 @@ input:focus {
   animation: toast-in 200ms var(--ease-standard) backwards;
 }
 
-/* Streaming indicator */
-@keyframes thinking-dot {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
+/* Logo spinner: a segment flows along the mark's single stroke */
+@keyframes logo-trace {
+  from {
+    stroke-dashoffset: 0;
   }
-  50% {
-    opacity: 1;
-    transform: scale(1);
+  to {
+    stroke-dashoffset: -1;
   }
 }
 
-.thinking-star {
-  animation: thinking-dot 1.2s ease-in-out infinite;
+.logo-spinner-trace {
+  stroke-dasharray: 0.32 0.68;
+  animation: logo-trace 1.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Activity timeline: each step eases in as the agent reaches it */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.step-in {
+  animation: step-in var(--duration-slow) var(--ease-standard) backwards;
 }
 
 /* Ambient empty state aura gentle breathing */
@@ -641,12 +651,17 @@ input:focus {
   .icon-in,
   .pill-in,
   .attach-in,
-  .thinking-star,
+  .logo-spinner-trace,
+  .step-in,
   .aura-breathe,
   .animate-spin,
   .animate-pulse,
   .sheet-in {
     animation: none;
+  }
+
+  .logo-spinner-trace {
+    stroke-dasharray: none;
   }
 
   * {

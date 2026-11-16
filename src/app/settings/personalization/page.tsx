@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BrainIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import { SkeletonLine } from "@/components/ui/skeleton";
 import type { Memory } from "@/types";
+import { LogoSpinner } from "@/components/brand/LogoSpinner";
 
 const KIND_LABELS: Record<Memory["kind"], string> = {
   fact: "Fact",
@@ -106,7 +107,11 @@ export default function PersonalizationSettingsPage() {
                     title="Forget this"
                     className="shrink-0 rounded-[var(--radius-md)] p-1.5 text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-danger-muted)] hover:text-[var(--color-danger)] disabled:opacity-50"
                   >
-                    <TrashSimpleIcon aria-hidden className="h-3.5 w-3.5" />
+                    {deleteMutation.isPending && deleteMutation.variables === memory.id ? (
+                      <LogoSpinner className="h-3.5 w-3.5" />
+                    ) : (
+                      <TrashSimpleIcon aria-hidden className="h-3.5 w-3.5" />
+                    )}
                   </button>
                 </li>
               ))}

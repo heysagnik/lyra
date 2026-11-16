@@ -1,9 +1,9 @@
-import { LogoMark } from "@/components/brand/LogoMark";
+import { LogoSpinner } from "@/components/brand/LogoSpinner";
 
 /**
  * Brand-consistent loading state for auth routes (sign-in / sign-up) so
  * the chat skeleton from the root boundary never flashes under the auth
- * forms. The mark breathes once via opacity — quiet, no spinner.
+ * forms. The Lyra mark traces itself as the spinner.
  */
 export default function AuthLoading() {
   return (
@@ -12,7 +12,7 @@ export default function AuthLoading() {
       aria-busy="true"
       aria-label="Loading"
     >
-      <LogoMark className="h-6 w-6 animate-pulse text-[var(--color-text-tertiary)]" />
+      <LogoSpinner className="h-6 w-6 text-[var(--color-text-tertiary)]" />
     </div>
   );
 }

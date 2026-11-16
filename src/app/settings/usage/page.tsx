@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ClockIcon, LightningIcon, ChartLineUpIcon } from "@phosphor-icons/react";
 import type { UserUsageStats } from "@/lib/db/queries/usage";
+import { LogoSpinner } from "@/components/brand/LogoSpinner";
 
 interface UsageApiResponse {
   ok: boolean;
@@ -50,7 +51,7 @@ export default function UsageSettingsPage() {
               Messages used
             </span>
             <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
-              {isLoading ? "…" : `${turnsUsed} of ${dailyLimit}`}
+              {isLoading ? <LogoSpinner className="inline-block h-4 w-4 align-[-3px]" /> : `${turnsUsed} of ${dailyLimit}`}
             </span>
           </div>
 
@@ -69,7 +70,7 @@ export default function UsageSettingsPage() {
               />
             </div>
             <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
-              {isLoading ? "…" : `${remaining} messages remaining today`}
+              {isLoading ? <LogoSpinner className="inline-block h-4 w-4 align-[-3px]" /> : `${remaining} messages remaining today`}
             </p>
           </div>
         </div>
@@ -102,7 +103,7 @@ export default function UsageSettingsPage() {
               Tokens today
             </span>
             <span className="text-sm tabular-nums text-[var(--color-text-tertiary)]">
-              {isLoading ? "…" : totalTokens.toLocaleString()}
+              {isLoading ? <LogoSpinner className="inline-block h-4 w-4 align-[-3px]" /> : totalTokens.toLocaleString()}
             </span>
           </div>
 

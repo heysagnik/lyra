@@ -45,7 +45,6 @@ export function useAgentChat({
     conversationId
   );
   const [currentSources, setCurrentSources] = useState<SearchSource[]>([]);
-  const [sourcesByMsgId, setSourcesByMsgId] = useState<Record<string, SearchSource[]>>({});
 
   const transport = useMemo(
     () =>
@@ -79,13 +78,6 @@ export function useAgentChat({
           const sourcesData = part.data as { items: SearchSource[] };
           if (Array.isArray(sourcesData.items) && sourcesData.items.length > 0) {
             setCurrentSources(sourcesData.items);
-            setMessages((prev) => {
-              const lastAssist = [...prev].reverse().find((m) => m.role === "assistant");
-              if (lastAssist?.id) {
-                setSourcesByMsgId((s) => ({ ...s, [lastAssist.id]: sourcesData.items }));
-              }
-              return prev;
-            });
           }
         }
       }
@@ -104,13 +96,11 @@ export function useAgentChat({
     // messages are live and must not be cleared.
     if (prev !== conversationId && !(prev === undefined && conversationId)) {
       setMessages([]);
-      setSourcesByMsgId({});
     }
   }, [conversationId, setMessages]);
 
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
-      const initialMap: Record<string, SearchSource[]> = {};
       const hydrated = initialMessages.map((m) => {
         const parts: ChatMessagePart[] = [];
         if (m.reasoning) {
@@ -121,7 +111,6 @@ export function useAgentChat({
         }
         if (m.sources?.length) {
           parts.push({ type: "data-sources", data: { items: m.sources } });
-          initialMap[m.id] = m.sources;
         }
         return {
           id: m.id,
@@ -133,7 +122,6 @@ export function useAgentChat({
           createdAt: m.createdAt,
         };
       });
-      setSourcesByMsgId((prev) => ({ ...prev, ...initialMap }));
       setMessages(hydrated as unknown as Parameters<typeof setMessages>[0]);
     }
   }, [initialMessages, setMessages]);
@@ -145,15 +133,6 @@ export function useAgentChat({
       modelOverride?: string,
       effortOverride?: "low" | "standard" | "max"
     ) => {
-      if (currentSources.length > 0) {
-        setMessages((prev) => {
-          const lastAssist = [...prev].reverse().find((m) => m.role === "assistant");
-          if (lastAssist?.id) {
-            setSourcesByMsgId((s) => ({ ...s, [lastAssist.id]: currentSources }));
-          }
-          return prev;
-        });
-      }
       setCurrentSources([]);
       const search = searchOverride !== undefined ? searchOverride : searchDefault;
 
@@ -181,21 +160,13 @@ export function useAgentChat({
         });
       }
     },
-    [rawSendMessage, activeConversationId, searchDefault, currentSources, setMessages]
+    [rawSendMessage, activeConversationId, searchDefault, setMessages]
   );
 
   const isStreaming = status === "streaming" || status === "submitted";
 
   const mappedMessages = useMemo(() => {
-    let lastAssistantIdx = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "assistant") {
-        lastAssistantIdx = i;
-        break;
-      }
-    }
-
-    return messages.map((m, idx) => {
+    return messages.map((m) => {
       let sources: SearchSource[] | undefined;
       const parts = (m.parts as ChatMessagePart[] | undefined) || [];
 
@@ -227,20 +198,11 @@ export function useAgentChat({
         }
       }
 
-      if (!sources && sourcesByMsgId[m.id]) {
-        sources = sourcesByMsgId[m.id];
-      }
-
       if (!sources && (m as unknown as { sources?: SearchSource[] }).sources?.length) {
         sources = (m as unknown as { sources?: SearchSource[] }).sources;
       }
 
-      const fallbackSources =
-        !sources && idx === lastAssistantIdx && m.role === "assistant" && currentSources.length > 0
-          ? currentSources
-          : undefined;
-
-      const finalSources = sources || fallbackSources;
+      const finalSources = sources;
 
       const toolCalls =
         (m as unknown as { toolCalls?: unknown }).toolCalls ||
@@ -263,7 +225,7 @@ export function useAgentChat({
         createdAt: (m as unknown as AgentChatMessage).createdAt,
       };
     });
-  }, [messages, currentSources, sourcesByMsgId]);
+  }, [messages]);
 
   return {
     conversationId: activeConversationId,

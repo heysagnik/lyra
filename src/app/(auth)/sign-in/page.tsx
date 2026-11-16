@@ -6,6 +6,7 @@ import Link from "next/link";
 import { EnvelopeSimpleIcon, LockIcon } from "@phosphor-icons/react";
 import { signIn, useSession } from "@/lib/auth/client";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { LogoSpinner } from "@/components/brand/LogoSpinner";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -114,9 +115,16 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={loading}
-          className="h-11 w-full rounded-[var(--radius-md)] bg-[var(--color-primary)] text-sm font-medium text-[var(--color-on-primary)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-primary)] text-sm font-medium text-[var(--color-on-primary)] transition-[opacity,transform] duration-[var(--duration-fast)] hover:opacity-90 active:scale-[0.96] disabled:opacity-50"
         >
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? (
+            <>
+              <LogoSpinner className="h-4 w-4" />
+              Signing in…
+            </>
+          ) : (
+            "Sign in"
+          )}
         </button>
       </form>
 
