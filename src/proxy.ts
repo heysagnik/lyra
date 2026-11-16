@@ -22,6 +22,7 @@ export function proxy(request: NextRequest) {
   if (
     !pathname.startsWith("/api") ||
     pathname === "/api/health" ||
+    pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();

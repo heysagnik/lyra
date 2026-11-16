@@ -20,6 +20,7 @@ export interface ModelDefinition {
   isDefaultPrimary?: boolean;
   /** Spends output tokens on hidden reasoning before the answer, so it needs a larger token budget. */
   reasoning?: boolean;
+  experimental?: boolean;
 }
 
 export const PROVIDERS: Record<string, ProviderDefinition> = {
@@ -38,7 +39,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     modelId: "nemotron-3-5-bolt-e4b",
     label: "Nemotron 3.5 Bolt E4B",
     providerId: "inferkit",
-    description: "Fastest model, low first-token latency",
+    description: "Fastest, brief answers",
     contextWindow: 131072,
     pricing: { inPer1M: 0.04, outPer1M: 0.04 },
   },
@@ -47,7 +48,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     modelId: "laguna-xs-2-1",
     label: "Laguna XS 2.1",
     providerId: "inferkit",
-    description: "Fast, well-written answers; the default",
+    description: "Fast, well-written answers",
     contextWindow: 131072,
     pricing: { inPer1M: 0.05, outPer1M: 0.15 },
     isDefaultPrimary: true,
@@ -57,7 +58,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     modelId: "minimax-m3-1-flash",
     label: "MiniMax M3.1 Flash",
     providerId: "inferkit",
-    description: "Fast MoE flash model, reliable under load",
+    description: "Quick, with extra thinking",
     contextWindow: 131072,
     pricing: { inPer1M: 0.3, outPer1M: 1.2 },
     reasoning: true,
@@ -67,7 +68,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     modelId: "mistral-large-4",
     label: "Mistral Large 4",
     providerId: "inferkit",
-    description: "Large MoE model with reasoning",
+    description: "Careful, detailed reasoning",
     contextWindow: 131072,
     pricing: { inPer1M: 2.0, outPer1M: 6.0 },
     reasoning: true,
@@ -77,7 +78,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     modelId: "nemotron-3-ultra-550b",
     label: "Nemotron 3 Ultra 550B",
     providerId: "inferkit",
-    description: "Largest reasoning model",
+    description: "Most capable, slowest",
     contextWindow: 131072,
     pricing: { inPer1M: 2.0, outPer1M: 6.0 },
     reasoning: true,
@@ -85,12 +86,13 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
   {
     id: "nemotron-3-5-lightning-30b",
     modelId: "nemotron-3-5-lightning-30b",
-    label: "Nemotron 3.5 Lightning 30B (experimental)",
+    label: "Nemotron 3.5 Lightning",
     providerId: "inferkit",
-    description: "Experimental: reasoning can exhaust the token budget",
+    description: "Experimental thinking model",
     contextWindow: 131072,
     pricing: { inPer1M: 0.2, outPer1M: 0.6 },
     reasoning: true,
+    experimental: true,
   },
 ];
 

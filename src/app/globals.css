@@ -282,6 +282,15 @@
 html,
 body {
   overflow-x: clip;
+  overscroll-behavior: none;
+}
+
+/* Links, icons and buttons are never drag sources (no ghost-image drags). */
+a,
+img,
+svg,
+button {
+  -webkit-user-drag: none;
 }
 
 body {
@@ -667,52 +676,6 @@ input:focus {
   * {
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Effort slider — 3-stop track with a rounded thumb, token surfaces */
-.effort-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.effort-slider::-webkit-slider-runnable-track {
-  height: 20px;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-3);
-}
-
-.effort-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 20px;
-  margin-top: 0;
-  border-radius: 6px;
-  background: var(--color-text);
-  border: none;
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.effort-slider::-moz-range-track {
-  height: 20px;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-3);
-}
-
-.effort-slider::-moz-range-thumb {
-  width: 18px;
-  height: 20px;
-  border-radius: 6px;
-  background: var(--color-text);
-  border: none;
-}
-
-.effort-slider:focus-visible {
-  box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
 }
 
 /* Floating bottom composer gradient scrim */

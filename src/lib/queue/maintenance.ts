@@ -1,8 +1,4 @@
-import {
-  pruneOldUsageEvents,
-  recordJobFailure,
-  rollupDailyUsage,
-} from "@/lib/db/queries/usage";
+import { pruneOldUsageEvents, rollupDailyUsage } from "@/lib/db/queries/usage";
 
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -28,50 +24,4 @@ export async function runUsageMaintenance(now = new Date()): Promise<{
   }
   const pruned = await pruneOldUsageEvents(90);
   return { rolledUp: targets, pruned };
-}
-
-export async function executeUsageMaintenanceTask(now = new Date()): Promise<void> {
-  try {
-    await runUsageMaintenance(now);
-  } catch (error) {
-    try {
-      await recordJobFailure({
-        kind: "usage_maintenance",
-        payload: { scheduledAt: now.toISOString() },
-        error: error instanceof Error ? error.message : String(error),
-      });
-    } catch {
-    }
-  }
-}
-
-const MAINTENANCE_STARTED = Symbol.for("lyra.usageMaintenanceLoop");
-type MaintenanceGlobal = typeof globalThis & { [MAINTENANCE_STARTED]?: boolean };
-
-/**
- * Start the nightly loop: first tick at the next UTC midnight, then every
- * 24 hours (re-anchored each tick). In-process by design (zero external
- * schedulers). Timers are unref'd so they never hold the
- * process open on their own.
- */
-export function startUsageMaintenanceLoop(): void {
-  const g = globalThis as MaintenanceGlobal;
-  if (g[MAINTENANCE_STARTED]) return;
-  g[MAINTENANCE_STARTED] = true;
-
-  const scheduleNext = () => {
-    const now = new Date();
-    const next = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
-    );
-    const t = setTimeout(tickAndReschedule, Math.max(0, next.getTime() - now.getTime()));
-    t.unref?.();
-  };
-
-  const tickAndReschedule = () => {
-    void executeUsageMaintenanceTask();
-    scheduleNext();
-  };
-
-  scheduleNext();
 }

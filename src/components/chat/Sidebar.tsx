@@ -109,7 +109,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Sidebar panel. On desktop the aside animates width; the inner
           column stays a fixed 280px so its text never re-wraps mid-animation. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 h-full w-full overflow-hidden bg-[var(--color-sidebar)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 h-full w-full overflow-clip bg-[var(--color-sidebar)] transition-[transform,width] duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)] md:static md:translate-x-0 ${
           isOpenMobile ? "translate-x-0 md:w-[280px]" : "-translate-x-full md:w-0"
         } ${isLayoutReady ? "" : "max-md:hidden"}`}
         aria-label="Conversation index"
@@ -195,7 +195,7 @@ export const Sidebar = memo(function Sidebar({
 
           <div
             ref={listScrollRef}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2"
+            className="min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-2"
           >
             {conversations.length === 0 ? (
                 <p className="px-3 py-6 text-xs leading-relaxed text-[var(--color-text-tertiary)]">

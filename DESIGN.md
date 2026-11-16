@@ -17,10 +17,10 @@ Lyra is a high-throughput, low-latency, conversational agent equipped with **liv
    The context window provided to the Large Language Model is mathematically bounded to **~2,600 tokens**, irrespective of whether the conversation has 2 messages or 200 messages. Older history is continuously summarized and compacted, eliminating token bloat and guaranteeing fixed per-turn inference costs.
 
 2. **Self-Contained & Zero-Overhead Infrastructure:**
-   Lyra eliminates external message brokers, Redis clusters, and distributed job queues (such as Upstash Redis or QStash). The entire application runs as a **single unified Next.js 16 deployment**, using **Neon Postgres** for relational storage, event logging, and ACID-compliant sliding window rate limiting, alongside in-process background task scheduling via `queueMicrotask`.
+   Lyra eliminates external message brokers, Redis clusters, and distributed job queues (such as Upstash Redis or QStash). The entire application runs as a **single unified Next.js 16 deployment**, using **Neon Postgres** for relational storage, event logging, and ACID-compliant sliding window rate limiting, alongside background work scheduled with Next.js `after()` and a daily Vercel cron.
 
 3. **Unified Multi-Model Registry:**
-   All inference routes through a standardized `getLanguageModel` factory backed by the **InferKit** OpenAI-compatible gateway. Users pick among six registered models (Nemotron 3.5 Bolt E4B, Laguna XS 2.1, MiniMax M3.1 Flash, Mistral Large 4, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning 30B).
+   All inference routes through a standardized `getLanguageModel` factory backed by the **InferKit** OpenAI-compatible gateway. Users pick among six registered models (Nemotron 3.5 Bolt E4B, Laguna XS 2.1, MiniMax M3.1 Flash, Mistral Large 4, Nemotron 3 Ultra 550B, Nemotron 3.5 Lightning).
 
 4. **Harness-Driven, Model-Light Pipeline:**
    Lyra is built to give good answers from low-end models. The harness plans, searches and verifies; the model never calls tools and only writes the final answer from numbered evidence. See section 3.
@@ -74,7 +74,7 @@ flowchart TD
     end
 
     subgraph SideEffects ["In-Process Background Plane"]
-        Queue["queueMicrotask Dispatcher"]
+        Queue["after() job (platform keeps function alive)"]
         TaskDistill["executeDistillTask (Memory Extraction)"]
         TaskSummary["executeSummarizeTask (Rolling CAS Summary)"]
     end
@@ -167,6 +167,7 @@ sequenceDiagram
     User->>API: POST { text, conversationId, search, model, effort }
     API->>Rate: checkRateLimits(userId)
     Rate-->>API: pass + in-flight lease
+    API->>DB: reserve usage_events row (counts the turn immediately)
     API->>DB: get/create conversation, save user message
     API->>Plan: planResearch(question, history)
     Plan-->>API: queries[] (or none)
@@ -179,7 +180,7 @@ sequenceDiagram
     LLM-->>User: answer deltas
     API->>API: checkAnswer (optional single repair)
     API->>DB: persist message + usage_events
-    API->>BG: enqueueSideEffects
+    API->>BG: after(): memory + summary (kept alive by the platform)
 ```
 
 ### Disconnect Resilience & Lease Guarantees
@@ -230,6 +231,10 @@ WHERE user_id = :userId
 - **Index Optimization:** Supported by `usage_events_user_created_idx` on `(user_id, created_at DESC)`. Execution time is typically < 2ms.
 - **Fail-Open Policy:** If Postgres experiences a transient outage during the rate limit check, the check degrades gracefully (`{ ok: true }`) to prevent blocking legitimate chat turns.
 
+### Turn reservation
+
+A turn is counted when it starts: `reserveUsageEvent` inserts the `usage_events` row right after the limit check passes, and `completeUsageEvent` fills in tokens, model and cost when it ends. A burst of parallel requests therefore cannot all slip past the per-minute and daily checks. If a turn fails on the server before producing anything, `releaseUsageEvent` removes the row so the user's quota is refunded.
+
 ### 2. In-Flight Request Throttling
 
 To prevent race conditions and token exhaustion from concurrent spam, an in-memory lease tracker restricts each user to a maximum of **2 concurrent active streaming turns** (`MAX_INFLIGHT = 2`).
@@ -238,11 +243,13 @@ To prevent race conditions and token exhaustion from concurrent spam, an in-memo
 
 ## 6. Background Side-Effects Plane
 
-Background tasks are decoupled from the user-facing request cycle via [`src/lib/queue/client.ts`](src/lib/queue/client.ts) and [`src/lib/queue/tasks.ts`](src/lib/queue/tasks.ts):
+Background tasks are decoupled from the user-facing response with Next.js `after()`, so the platform keeps the function alive until they finish instead of freezing it when the stream closes. `runTurn` registers the job up front and resolves it once the turn succeeds ([`src/lib/queue/client.ts`](src/lib/queue/client.ts) builds it, [`src/lib/queue/tasks.ts`](src/lib/queue/tasks.ts) runs it). A failed turn resolves it with nothing.
+
+**Scheduled maintenance:** usage roll-up and pruning of old `usage_events` run from a daily Vercel cron (`vercel.json`) hitting `/api/cron/maintenance`, authorised by `CRON_SECRET`. There is no in-process timer.
 
 ```mermaid
 flowchart LR
-    TurnEnd["Chat Turn Complete"] --> Dispatch["queueMicrotask()"]
+    TurnEnd["Chat Turn Complete"] --> Dispatch["after() (Next.js)"]
     Dispatch --> TaskDistill["executeDistillTask"]
     Dispatch --> Condition{"Unsummarized Msgs >= 10?"}
     Condition -- Yes --> TaskSummary["executeSummarizeTask"]
@@ -304,7 +311,7 @@ All callers invoke `getLanguageModel(modelIdOrAlias)`:
 | **MiniMax M3.1 Flash** | `minimax-m3-1-flash` | 131,072 | $0.30 / $1.20 | Fast MoE; reasoning (larger token budget) |
 | **Mistral Large 4** | `mistral-large-4` | 131,072 | $2.00 / $6.00 | Large MoE with reasoning |
 | **Nemotron 3 Ultra 550B** | `nemotron-3-ultra-550b` | 131,072 | $2.00 / $6.00 | Largest reasoning model |
-| **Nemotron 3.5 Lightning 30B (experimental)** | `nemotron-3-5-lightning-30b` | 131,072 | $0.20 / $0.60 | Reasoning can exhaust the token budget |
+| **Nemotron 3.5 Lightning (experimental)** | `nemotron-3-5-lightning-30b` | 131,072 | $0.20 / $0.60 | Reasoning can exhaust the token budget |
 
 Prices are estimates used for cost tracking; confirm them against InferKit.
 

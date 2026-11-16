@@ -68,6 +68,35 @@ export async function recordUsageEvent(data: {
   };
 }
 
+/** Count a turn against the user's quota the moment it starts, so bursts cannot slip past the limits. */
+export async function reserveUsageEvent(userId: string): Promise<number> {
+  const db = getDb();
+  const [row] = await db.insert(usageEvents).values({ userId }).returning({ id: usageEvents.id });
+  return row.id;
+}
+
+/** Fill in the real numbers on a reserved turn once it finishes. */
+export async function completeUsageEvent(
+  id: number,
+  data: {
+    conversationId?: string;
+    model?: string;
+    tokensIn?: number;
+    tokensOut?: number;
+    cachedIn?: number;
+    costUsd?: string;
+  }
+): Promise<void> {
+  const db = getDb();
+  await db.update(usageEvents).set(data).where(eq(usageEvents.id, id));
+}
+
+/** Give the quota back when a turn failed on our side before producing anything. */
+export async function releaseUsageEvent(id: number): Promise<void> {
+  const db = getDb();
+  await db.delete(usageEvents).where(eq(usageEvents.id, id));
+}
+
 export async function rollupDailyUsage(day: string): Promise<void> {
   const db = getDb();
   await db.execute(sql`

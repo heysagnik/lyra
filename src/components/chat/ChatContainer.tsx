@@ -236,17 +236,11 @@ export function ChatContainer({
       onSend={handleSend}
       isStreaming={isStreaming}
       onStop={stop}
-      isModelLocked={!isEmpty || isStreaming}
-      lockedModel={
-        !isEmpty && !isStreaming
-          ? (activeConvData?.messages.find((m) => m.model)?.model ?? undefined)
-          : undefined
-      }
     />
   );
 
   return (
-    <div className="fixed inset-0 flex w-full overflow-hidden bg-[var(--color-canvas)]">
+    <div className="fixed inset-0 flex w-full overflow-clip overscroll-none bg-[var(--color-canvas)]">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeId}
@@ -260,7 +254,7 @@ export function ChatContainer({
       />
 
       {/* Main column */}
-      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-clip">
         <header className="relative z-30 flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-canvas)] px-3 sm:px-4">
           <div className="flex min-w-0 items-center gap-2">
             <button

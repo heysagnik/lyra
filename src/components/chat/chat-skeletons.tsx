@@ -8,7 +8,7 @@ const ASSISTANT_PARAGRAPHS = [
 
 export function ChatMessagesSkeleton() {
   return (
-    <div className="h-full overflow-hidden px-3 py-6 sm:px-4">
+    <div className="h-full overflow-clip px-3 py-6 sm:px-4">
       <div className="mx-auto flex max-w-[42rem] flex-col gap-5">
         {/* User turn */}
         <div className="fade-in flex justify-end">
@@ -42,7 +42,7 @@ export function ChatMessagesSkeleton() {
 
 function SidebarListSkeleton() {
   return (
-    <div className="min-h-0 flex-1 overflow-hidden px-3">
+    <div className="min-h-0 flex-1 overflow-clip px-3">
       <SkeletonLine className="mb-3 mt-4 h-3 w-20" delay={80} />
       <div className="flex flex-col gap-0.5">
         {Array.from({ length: SIDEBAR_ROWS }, (_, i) => (
@@ -66,14 +66,14 @@ function SidebarListSkeleton() {
 export function ChatShellSkeleton() {
   return (
     <div
-      className="fixed inset-0 flex w-full overflow-hidden bg-[var(--color-canvas)]"
+      className="fixed inset-0 flex w-full overflow-clip overscroll-none bg-[var(--color-canvas)]"
       aria-busy="true"
       aria-label="Loading chat"
     >
       {/* Sidebar — mirrors Sidebar.tsx's fixed 280px column */}
       <aside
         aria-hidden
-        className="hidden h-full w-[280px] shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-sidebar)] md:flex"
+        className="hidden h-full w-[280px] shrink-0 flex-col overflow-clip border-r border-[var(--color-border)] bg-[var(--color-sidebar)] md:flex"
       >
         {/* Wordmark row */}
         <div className="flex h-12 shrink-0 items-center justify-between px-3">
@@ -106,7 +106,7 @@ export function ChatShellSkeleton() {
       </aside>
 
       {/* Main column */}
-      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-clip">
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-canvas)] px-3 sm:px-4">
           <div className="flex items-center gap-2">
             <Skeleton className="h-9 w-9 rounded-[var(--radius-md)]" delay={200} />

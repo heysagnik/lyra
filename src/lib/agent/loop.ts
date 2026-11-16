@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import {
   streamText,
   createUIMessageStream,
@@ -19,8 +20,13 @@ import {
   incrementMsgCount,
 } from "@/lib/db/queries/conversations";
 import { createMessage } from "@/lib/db/queries/messages";
-import { recordUsageEvent } from "@/lib/db/queries/usage";
-import { enqueueSideEffects } from "@/lib/queue/client";
+import {
+  recordUsageEvent,
+  reserveUsageEvent,
+  completeUsageEvent,
+  releaseUsageEvent,
+} from "@/lib/db/queries/usage";
+import { buildSideEffects } from "@/lib/queue/client";
 import { logStructuredError, makeAppError } from "@/lib/errors";
 import type { TurnInput, SearchSource } from "@/types";
 
@@ -61,6 +67,12 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
   }
 
   let releaseInFlight = limitGate.release;
+
+  // Count this turn now (not when it ends); failures to reserve never block the turn.
+  let reservationId: number | undefined;
+  try {
+    reservationId = await reserveUsageEvent(user.id);
+  } catch {}
 
   const releaseAll = async () => {
     try {
@@ -108,6 +120,17 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         msg,
         error: error instanceof Error ? error.message : String(error),
       });
+
+    // Background work (memory, summary) runs via after() so the platform keeps the
+    // function alive for it; the slot resolves with the job, or null if the turn failed.
+    let resolveSideEffects: (job: (() => Promise<void>) | null) => void = () => {};
+    const sideEffects = new Promise<(() => Promise<void>) | null>((resolve) => {
+      resolveSideEffects = resolve;
+    });
+    after(async () => {
+      const job = await sideEffects;
+      await job?.();
+    });
 
     const uiStream = createUIMessageStream({
       execute: async ({ writer }) => {
@@ -305,26 +328,30 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
           }
 
           try {
-            await recordUsageEvent({
-              userId: user.id,
+            const usageData = {
               conversationId,
               model: answerSelection.modelName,
               tokensIn,
               tokensOut,
               cachedIn,
               costUsd,
-            });
+            };
+            if (reservationId !== undefined) await completeUsageEvent(reservationId, usageData);
+            else await recordUsageEvent({ userId: user.id, ...usageData });
           } catch (e) {
             logError("INTERNAL", "Failed to record usage event", e);
           }
 
-          void enqueueSideEffects(
-            conversationId,
-            user.id,
-            (conv?.msgCount ?? 0) + 2,
-            conv?.summarizedCount ?? 0
+          resolveSideEffects(
+            buildSideEffects(
+              conversationId,
+              user.id,
+              (conv?.msgCount ?? 0) + 2,
+              conv?.summarizedCount ?? 0
+            )
           );
         } finally {
+          resolveSideEffects(null);
           await releaseAll();
         }
       },
@@ -339,6 +366,11 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
 
     return createUIMessageStreamResponse({ stream: uiStream });
   } catch (error) {
+    if (reservationId !== undefined) {
+      try {
+        await releaseUsageEvent(reservationId);
+      } catch {}
+    }
     await releaseAll();
     logStructuredError({
       userId: user.id,
