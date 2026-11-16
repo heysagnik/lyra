@@ -139,7 +139,8 @@ export function ActivityTimeline({
 
   // Open while work is happening, fold once the answer arrives; the user's choice wins.
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
-  const open = !planning && (userToggled ?? live);
+  const expandable = hasReasoning && !planning;
+  const open = expandable && (userToggled ?? live);
 
   if (!planning && !hasReasoning && !hasSearch) return null;
 
@@ -165,7 +166,7 @@ export function ActivityTimeline({
       <button
         type="button"
         onClick={() => setUserToggled(!open)}
-        disabled={planning}
+        disabled={!expandable}
         aria-expanded={open}
         aria-controls={panelId}
         className="group flex min-h-7 max-w-full items-center disabled:cursor-default gap-1.5 rounded-[var(--radius-sm)] py-1 text-xs text-[var(--color-text-tertiary)] transition-colors duration-[var(--duration-fast)] hover:text-[var(--color-text-secondary)]"
@@ -182,7 +183,7 @@ export function ActivityTimeline({
         </span>
         <CaretDownIcon
           aria-hidden
-          className={`h-3 w-3 shrink-0 transition-transform ${planning ? "hidden" : ""} duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] ${
+          className={`h-3 w-3 shrink-0 transition-transform ${expandable ? "" : "hidden"} duration-[var(--duration-fast)] [transition-timing-function:var(--ease-standard)] ${
             open ? "rotate-180" : ""
           }`}
         />
