@@ -132,7 +132,7 @@ export function MessageList({
           onClick={() => scrollToBottom(true)}
           aria-label="Jump to the latest message"
           style={{ translate: "-50%" }}
-          className="pill-in absolute bottom-36 left-1/2 z-50 flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] py-1.5 pl-2.5 pr-3 text-xs font-medium text-[var(--color-text)] shadow-[var(--shadow-dialog)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
+          className="pill-in absolute bottom-36 left-1/2 z-20 flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] py-1.5 pl-2.5 pr-3 text-xs font-medium text-[var(--color-text)] shadow-[var(--shadow-dialog)] transition-[background-color,transform] duration-[var(--duration-normal)] hover:bg-[var(--color-hover)] active:scale-[0.96]"
         >
           <ArrowDownIcon className="h-3.5 w-3.5 text-[var(--color-accent)]" />
           <span>Jump to latest</span>

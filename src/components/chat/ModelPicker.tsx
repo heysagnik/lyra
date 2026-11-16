@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CaretDownIcon, CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
 import { PROVIDERS, REGISTERED_MODELS, resolveModelDefinition } from "@/lib/llm/models";
 
@@ -32,11 +33,126 @@ function Tag({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** True on phones and touch devices (no hover), where the picker is a bottom sheet. */
+function useSheetMode(): boolean {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px), (hover: none)");
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return matches;
+}
+
+function ModelSheet({
+  activeId,
+  effort,
+  onSelectModel,
+  onEffortChange,
+  onClose,
+}: {
+  activeId: string;
+  effort: EffortLevel;
+  onSelectModel: (id: string) => void;
+  onEffortChange: (effort: EffortLevel) => void;
+  onClose: () => void;
+}) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    sheetRef.current?.focus();
+  }, []);
+  const effortIndex = Math.max(0, EFFORT_LEVELS.findIndex((e) => e.id === effort));
+
+  return createPortal(
+    <>
+      <div className="fade-in fixed inset-0 z-[70] bg-[var(--color-scrim)]" onClick={onClose} aria-hidden />
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Model and effort"
+        tabIndex={-1}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onClose();
+          }
+        }}
+        className="sheet-in fixed inset-x-0 bottom-0 z-[80] mx-auto max-h-[85dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl border-t border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-[var(--shadow-drawer)] outline-none"
+      >
+        <div aria-hidden className="mx-auto mb-1.5 h-1 w-10 rounded-full bg-[var(--color-surface-3)]" />
+        <p className="px-3 pb-1 pt-1 text-xs text-[var(--color-text-tertiary)]">Model</p>
+        <div role="listbox" aria-label="Model" className="flex flex-col">
+          {REGISTERED_MODELS.map((m) => {
+            const selected = m.id === activeId;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => onSelectModel(m.id)}
+                className="flex h-12 w-full items-center gap-2 rounded-[var(--radius-lg)] px-3 text-left transition-colors duration-[var(--duration-fast)] active:bg-[var(--color-hover)]"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-medium text-[var(--color-text)]">
+                    <span className="truncate">{m.label}</span>
+                    {m.isDefaultPrimary ? <Tag>Default</Tag> : m.experimental ? <Tag>Experimental</Tag> : null}
+                  </span>
+                  <span className="block truncate text-xs text-[var(--color-text-tertiary)]">{m.description}</span>
+                </span>
+                {selected ? <CheckIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--color-text)]" /> : null}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="px-3 pb-1.5 pt-4 text-xs text-[var(--color-text-tertiary)]">Effort</p>
+        <div
+          role="radiogroup"
+          aria-label="Effort"
+          className="relative mx-1 grid h-11 select-none grid-cols-3 rounded-[var(--radius-lg)] bg-[var(--color-surface-2)] p-1"
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-1 left-1 top-1 w-[calc((100%-8px)/3)] rounded-[var(--radius-md)] bg-[var(--color-surface-3)] transition-transform duration-[var(--duration-slow)] [transition-timing-function:var(--ease-drawer)]"
+            style={{ transform: `translateX(${effortIndex * 100}%)` }}
+          />
+          {EFFORT_LEVELS.map((lvl) => {
+            const selected = lvl.id === effort;
+            return (
+              <button
+                key={lvl.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => onEffortChange(lvl.id)}
+                className={`relative z-10 rounded-[var(--radius-md)] text-sm transition-colors duration-[var(--duration-fast)] ${
+                  selected ? "font-medium text-[var(--color-text)]" : "text-[var(--color-text-tertiary)]"
+                }`}
+              >
+                {lvl.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="px-3 pb-1 pt-2 text-xs text-[var(--color-text-tertiary)]">
+          {EFFORT_LEVELS[effortIndex].hint}
+        </p>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 export function ModelPicker({ model, onModelChange, effort, onEffortChange }: ModelPickerProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listId = useId();
+  const sheetMode = useSheetMode();
 
   const active = resolveModelDefinition(model);
   // The row whose effort submenu is showing; null until a row is hovered or keyboard-focused.
@@ -48,16 +164,16 @@ export function ModelPicker({ model, onModelChange, effort, onEffortChange }: Mo
   const effortLabel = EFFORT_LEVELS.find((e) => e.id === effort)?.label ?? "Medium";
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || sheetMode) return;
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
+  }, [open, sheetMode]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || sheetMode) return;
     setFocusedId(null);
     rootRef.current?.querySelector<HTMLElement>('[role="option"][aria-selected="true"]')?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +230,7 @@ export function ModelPicker({ model, onModelChange, effort, onEffortChange }: Mo
       <button
         ref={triggerRef}
         type="button"
-        aria-haspopup="listbox"
+        aria-haspopup={sheetMode ? "dialog" : "listbox"}
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((v) => !v)}
@@ -130,7 +246,20 @@ export function ModelPicker({ model, onModelChange, effort, onEffortChange }: Mo
         />
       </button>
 
-      {open ? (
+      {open && sheetMode ? (
+        <ModelSheet
+          activeId={active.id}
+          effort={effort}
+          onSelectModel={(id) => {
+            onModelChange(id);
+            setOpen(false);
+          }}
+          onEffortChange={onEffortChange}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+
+      {open && !sheetMode ? (
         <div
           id={listId}
           onKeyDown={onKeyDown}
@@ -222,6 +351,7 @@ export function ModelPicker({ model, onModelChange, effort, onEffortChange }: Mo
                 );
               })}
             </div>
+
           </div>
         </div>
       ) : null}
