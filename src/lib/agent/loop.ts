@@ -8,7 +8,7 @@ import { assemblePromptContext } from "./memory";
 import { EFFORT_BUDGET, calculateTurnCostUsd, type Effort } from "./budget";
 import { planResearch } from "./planner";
 import { runResearch } from "./research";
-import { checkAnswer } from "./check";
+import { checkAnswer, judgeGrounding } from "./check";
 import { buildEvidenceMessage, buildRepairMessage } from "./prompt";
 import { requireUser } from "@/lib/auth/require-user";
 import { checkRateLimits } from "@/lib/ratelimit/limiters";
@@ -84,7 +84,6 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
 
     const conversationId = conv.id;
     const conversationTitle = conv.title;
-    const searchEnabled = input.search ?? conv.searchDefault;
 
     const ctx = await assemblePromptContext(user.id, conversationId);
     const history = ctx.window;
@@ -122,9 +121,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         try {
           write({ type: "data-meta", data: { conversationId, title: conversationTitle } });
 
-          const plan = searchEnabled
-            ? await planResearch({ question: input.text, history, modelId: modelName })
-            : { queries: [] as string[] };
+          const plan = await planResearch({ question: input.text, history, modelId: modelName });
 
           let sources: SearchSource[] = [];
           let executedQueries: string[] = [];
@@ -186,6 +183,15 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
 
           const checked = checkAnswer(finalText, sources.length, truncated);
           finalText = checked.text;
+          if (sources.length > 0 && checked.problems.length === 0) {
+            const problem = await judgeGrounding({
+              modelId: modelName,
+              question: input.text,
+              answer: finalText,
+              sources,
+            });
+            if (problem) checked.problems.push(problem);
+          }
           let repairUsage: Usage | null = null;
 
           if (checked.problems.length > 0) {

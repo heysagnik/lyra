@@ -1,9 +1,4 @@
-import {
-  searchWebStructured,
-  rankSourcesForEvidence,
-  isGenericEntityResult,
-  normalizeQueryKey,
-} from "@/lib/tools/web-search";
+import { searchWebStructured, normalizeQueryKey } from "@/lib/tools/web-search";
 import { MAX_SOURCES_PER_TURN } from "./budget";
 import type { ResearchPlan } from "./planner";
 import type { SearchSource } from "@/types";
@@ -14,10 +9,15 @@ export interface ResearchResult {
   notes: string[];
 }
 
+/**
+ * Run every planned query in parallel and merge the results. Provider order is
+ * kept (interleaved across queries so each query contributes its best hits);
+ * the harness does not guess which results are "real articles".
+ */
 export async function runResearch(plan: ResearchPlan): Promise<ResearchResult> {
-  const keys = new Map<string, string>();
-  for (const q of plan.queries) keys.set(normalizeQueryKey(q), q);
-  const queries = [...keys.values()];
+  const unique = new Map<string, string>();
+  for (const q of plan.queries) unique.set(normalizeQueryKey(q), q);
+  const queries = [...unique.values()];
 
   const settled = await Promise.all(
     queries.map(async (query) => {
@@ -30,25 +30,23 @@ export async function runResearch(plan: ResearchPlan): Promise<ResearchResult> {
     })
   );
 
+  const notes = settled.filter((r) => r.sources.length === 0 && r.note).map((r) => r.note as string);
+
   const seen = new Set<string>();
-  const ranked: SearchSource[] = [];
-  const notes: string[] = [];
-  for (const { query, sources, note } of settled) {
-    if (note && sources.length === 0) notes.push(note);
-    const unique = sources.filter((s) => {
-      if (!s.url || seen.has(s.url)) return false;
-      seen.add(s.url);
-      return true;
-    });
-    const key = normalizeQueryKey(query);
-    const specific = unique.filter((s) => !isGenericEntityResult(s, key));
-    const kept = specific.length >= 3 ? specific : unique;
-    ranked.push(...rankSourcesForEvidence(kept, key));
+  const merged: SearchSource[] = [];
+  const longest = Math.max(0, ...settled.map((r) => r.sources.length));
+  for (let i = 0; i < longest; i++) {
+    for (const { sources } of settled) {
+      const source = sources[i];
+      if (!source?.url || seen.has(source.url)) continue;
+      seen.add(source.url);
+      merged.push(source);
+    }
   }
 
   return {
-    sources: ranked.slice(0, MAX_SOURCES_PER_TURN),
-    executedQueries: settled.map((s) => s.query),
+    sources: merged.slice(0, MAX_SOURCES_PER_TURN),
+    executedQueries: settled.map((r) => r.query),
     notes,
   };
 }

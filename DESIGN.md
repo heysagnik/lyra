@@ -118,11 +118,9 @@ A turn is a fixed pipeline in [`src/lib/agent/loop.ts`](src/lib/agent/loop.ts), 
 flowchart LR
     A[POST /api/chat] --> B[Auth + rate limits]
     B --> C[Context T0-T3]
-    C --> D{Search enabled?}
-    D -- no --> G
-    D -- yes --> E["1. Plan<br/>planner.ts"]
+    C --> E["1. Plan<br/>model: NONE or queries"]
     E -- queries --> F["2. Research<br/>research.ts"]
-    E -- none --> G
+    E -- NONE --> G
     F --> G["3. Answer<br/>one tool-free streamText"]
     G --> H["4. Check<br/>check.ts"]
     H -- problems --> R[One repair generation]
@@ -131,13 +129,13 @@ flowchart LR
 ```
 
 ### 1. Plan ([`planner.ts`](src/lib/agent/planner.ts))
-- Greetings, code fences, bare arithmetic and requests that start with "write / draft / rewrite / translate / summarize / refactor / debug" skip search with no model call.
-- Otherwise a short, temperature-0 `generateText` call (120 tokens max, 6 s timeout) answers in plain lines: `SEARCH: yes|no`, `QUERY 1..2`, `RECENCY: n`. Line formats are used instead of JSON or tool schemas because weak models follow them reliably. The model rewrites the question into standalone keyword queries using the last four history messages.
-- If the call fails or is unparsable, a keyword heuristic (today, latest, price, news, current year, ...) builds a single query from the question, otherwise no search.
+- The **model decides** whether a message needs the web, with no keyword rules and no user toggle. A short, temperature-0 `generateText` call (120 tokens max, 6 s timeout) is told today's date and replies with either `NONE` or `QUERY 1..2` / `RECENCY: n` lines. A single `NONE`-or-queries reply avoids the contradiction small models produced with a separate yes/no field (saying "no" while still writing a query).
+- Any `QUERY` line wins over a stray `NONE`. Short commands like "search" or "try again" are resolved by the model against the last four history messages.
+- If the call fails or is unparsable, the planner defaults to searching on the user's own words (joined with the previous question for very short follow-ups), because a missed search is worse than a wasted one.
 
 ### 2. Research ([`research.ts`](src/lib/agent/research.ts))
 - Up to `MAX_SEARCH_QUERIES = 3` queries run in parallel through `searchWebStructured`.
-- Results are deduplicated by URL, homepage and profile pages are dropped when at least three real articles exist, and the rest are ranked news-first. The ledger is capped at `MAX_SOURCES_PER_TURN = 10`.
+- Results are deduplicated by URL and interleaved across queries, keeping the provider's own order. The harness does not guess which results are real articles. The ledger is capped at `MAX_SOURCES_PER_TURN = 10`.
 - The UI receives a synthetic `web_search` tool event (for the search badge) and a `data-sources` part.
 
 ### 3. Answer
@@ -145,10 +143,11 @@ flowchart LR
 - The numbered evidence and the question go in the **last** user message, because low-end models weight the end of the prompt most.
 
 ### 4. Check ([`check.ts`](src/lib/agent/check.ts))
-Deterministic code replaces an LLM judge, which a weak model would run unreliably:
+Checks use only facts the harness knows, plus one model judgement:
 - Rewrites `【7†L1-L3】` style markers to `[7]` and strips citations that point at no source.
-- Flags empty answers, "let me search..." narration, filler openers, missing citations when evidence exists, and truncation (`finishReason === "length"`).
-- Any flag triggers at most one repair generation, streamed into the same assistant message.
+- Flags empty answers, missing `[n]` citations when evidence exists, and truncation (`finishReason === "length"`).
+- `judgeGrounding` asks the model one question ("does the answer use the evidence?") and expects one word, `GROUNDED` or `UNGROUNDED`. Any error or unclear reply counts as grounded so it can never block a turn.
+- Any problem triggers at most one repair generation, streamed into the same assistant message.
 
 ### 5. Persist
 The assistant message, sources, search queries, token usage and cost are saved, then side effects are enqueued (section 6).

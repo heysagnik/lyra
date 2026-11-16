@@ -7,65 +7,64 @@ export interface ResearchPlan {
   recencyDays?: number;
 }
 
-const NO_SEARCH_PATTERNS: RegExp[] = [
-  /^\s*(hi|hello|hey|thanks|thank you|ok|okay|cool|yo)\b[\s!.?]*$/i,
-  /```/,
-  /^\s*[\d\s+\-*/().^%=]+\??\s*$/,
-  /^\s*(please\s+)?(write|draft|rewrite|translate|summari[sz]e|proofread|refactor|debug)\b/i,
-];
+type HistoryMessage = { role: "user" | "assistant"; content: string };
 
-const FRESHNESS_PATTERN =
-  /\b(today|yesterday|tonight|latest|recent|recently|current|currently|now|news|price|pricing|score|weather|release[ds]?|launch(ed)?|update[ds]?|20(2[4-9]|3\d)|this (week|month|year)|who (is|won)|is .* still)\b/i;
-
-export function skipsSearch(text: string): boolean {
-  return NO_SEARCH_PATTERNS.some((p) => p.test(text));
-}
-
-function heuristicPlan(question: string): ResearchPlan {
-  const q = question.replace(/\s+/g, " ").trim().slice(0, 200);
-  return {
-    queries: [q],
-    recencyDays: /\b(today|yesterday|tonight|news|latest|breaking)\b/i.test(q) ? 7 : undefined,
-  };
-}
-
+/**
+ * Parse the planner's reply: `NONE` means no web search; otherwise "QUERY n:"
+ * lines. Any query line wins over a stray NONE. Returns null when the reply is
+ * neither, so the caller can fall back. Low-end models are unreliable at JSON
+ * and tool schemas but follow simple line formats well.
+ */
 export function parsePlan(raw: string): ResearchPlan | null {
-  const lines = raw.split("\n").map((l) => l.trim());
-  const searchLine = lines.find((l) => /^search\s*:/i.test(l));
-  if (searchLine && /:\s*no\b/i.test(searchLine)) return { queries: [] };
-
   const queries: string[] = [];
-  for (const l of lines) {
-    const m = l.match(/^(?:query\s*\d*|q\d*|-|\d+[.)])\s*:?\s*(.+)$/i);
+  for (const line of raw.split("\n")) {
+    const m = line.trim().match(/^(?:query\s*\d*|q\d*|-|\d+[.)])\s*:?\s*(.+)$/i);
     if (!m) continue;
     const query = m[1].replace(/^["'`]+|["'`]+$/g, "").trim();
-    if (query.length >= 3 && query.length <= 120 && !queries.includes(query)) {
+    if (query.length >= 3 && query.length <= 120 && !query.startsWith("<") && !queries.includes(query)) {
       queries.push(query);
     }
   }
-  if (queries.length === 0) return null;
+  if (queries.length === 0) return /^\W*none\b/i.test(raw.trim()) ? { queries: [] } : null;
 
-  const recency = raw.match(/recency\s*:\s*(\d{1,3})/i);
+  const recency = Number(raw.match(/recency\s*:\s*(\d{1,3})/i)?.[1]);
   return {
     queries: queries.slice(0, MAX_SEARCH_QUERIES),
-    recencyDays: recency ? Math.min(365, Number(recency[1])) : undefined,
+    recencyDays: recency > 0 ? Math.min(365, recency) : undefined,
   };
 }
 
+/** Used only when the planner call fails or is unparsable: search on the user's own words. */
+function fallbackQuery(question: string, history: HistoryMessage[]): string {
+  const clean = (t: string) => t.replace(/^\[[^\]]*\]\s*/, "").replace(/\s+/g, " ").trim();
+  const q = clean(question);
+  if (q.split(" ").length >= 3) return q.slice(0, 200);
+  const previous = [...history].reverse().find((m) => m.role === "user");
+  return (previous ? `${clean(previous.content)} ${q}` : q).slice(0, 200);
+}
+
+/**
+ * The model decides whether a message needs the web. It replies `NONE` or a
+ * list of queries. Failure to decide defaults to searching, since a missed
+ * search is worse than a wasted one.
+ */
 export async function planResearch(opts: {
   question: string;
-  history: Array<{ role: "user" | "assistant"; content: string }>;
+  history: HistoryMessage[];
   modelId: string;
 }): Promise<ResearchPlan> {
   const { question, history, modelId } = opts;
-  if (skipsSearch(question)) return { queries: [] };
-
-  const fallback = FRESHNESS_PATTERN.test(question) ? heuristicPlan(question) : null;
 
   const recent = history
     .slice(-4)
     .map((m) => `${m.role}: ${m.content.slice(0, 300)}`)
     .join("\n");
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   try {
     const { model } = getLanguageModel(modelId);
@@ -76,14 +75,17 @@ export async function planResearch(opts: {
       maxRetries: 1,
       abortSignal: AbortSignal.timeout(6000),
       prompt: [
-        "Decide whether answering the LAST user message needs a live web search.",
-        "Search for: recent events, prices, versions, people/companies in the news, anything that changes over time.",
-        "Do not search for: math, coding, writing, definitions, stable well-known facts.",
-        "Reply in EXACTLY this format and nothing else:",
-        "SEARCH: yes or no",
-        `QUERY 1: <standalone keyword query: entity + event/intent, no pronouns>`,
-        `QUERY 2: <optional second angle, only if the question has two parts>`,
-        "RECENCY: <days, only if the question is about recent news>",
+        "Decide if the LAST user message needs fresh facts from the web.",
+        "Needs web: news, events, dates, prices, scores, weather, versions, who currently holds a role, anything that changes or you may not know.",
+        "No web needed: greetings, thanks, math, coding help, writing or rewriting text, explaining stable concepts, chit-chat.",
+        `Today is ${today}.`,
+        "",
+        "If NO web is needed, reply with exactly: NONE",
+        "If web IS needed, reply with search queries in exactly this format:",
+        "QUERY 1: <keyword query: entity + event/intent, dates in full, no pronouns>",
+        "QUERY 2: <optional, only if the question has two parts>",
+        "RECENCY: <days, only for recent news>",
+        'If the last message is a short command like "search" or "try again", use the previous user question.',
         "",
         recent ? `CONVERSATION:\n${recent}\n` : "",
         `LAST USER MESSAGE: ${question.slice(0, 500)}`,
@@ -93,5 +95,5 @@ export async function planResearch(opts: {
     if (plan) return plan;
   } catch {}
 
-  return fallback ?? { queries: [] };
+  return { queries: [fallbackQuery(question, history)] };
 }
