@@ -50,7 +50,7 @@ flowchart TD
 
     subgraph Edge ["Next.js Application Layer"]
         MW["Proxy / Session Guard (src/proxy.ts)"]
-        ChatRoute["POST /api/chat (SSE Stream, maxDuration 60)"]
+        ChatRoute["POST /api/chat (SSE Stream, maxDuration 300)"]
         UsageRoute["GET /api/usage (Rate & Token Stats)"]
         HealthRoute["GET /api/health (DB Ping & Failure DLQ)"]
         ConvRoute["CRUD /api/conversations/*"]
@@ -299,14 +299,21 @@ All callers invoke `getLanguageModel(modelIdOrAlias)`:
 
 | Model | Model ID | Context | Pricing (In/Out per 1M) | Role |
 |---|---|---|---|---|
-| **Nemotron 3.5 Bolt E4B** | `nemotron-3-5-bolt-e4b` | 131,072 | $0.04 / $0.04 | **Default**: fastest, low first-token latency |
-| **Laguna XS 2.1** | `laguna-xs-2-1` | 131,072 | $0.05 / $0.15 | Code-focused, very low latency |
-| **MiniMax M3.1 Flash** | `minimax-m3-1-flash` | 131,072 | $0.30 / $1.20 | Fast MoE, reliable under load |
+| **Nemotron 3.5 Bolt E4B** | `nemotron-3-5-bolt-e4b` | 131,072 | $0.04 / $0.04 | Fastest; also the helper model for planning and grounding checks |
+| **Laguna XS 2.1** | `laguna-xs-2-1` | 131,072 | $0.05 / $0.15 | **Default** and fallback: fast, well-written answers |
+| **MiniMax M3.1 Flash** | `minimax-m3-1-flash` | 131,072 | $0.30 / $1.20 | Fast MoE; reasoning (larger token budget) |
 | **Mistral Large 4** | `mistral-large-4` | 131,072 | $2.00 / $6.00 | Large MoE with reasoning |
 | **Nemotron 3 Ultra 550B** | `nemotron-3-ultra-550b` | 131,072 | $2.00 / $6.00 | Largest reasoning model |
-| **Nemotron 3.5 Lightning 30B** | `nemotron-3-5-lightning-30b` | 131,072 | $0.20 / $0.60 | Mid-size reasoning MoE |
+| **Nemotron 3.5 Lightning 30B (experimental)** | `nemotron-3-5-lightning-30b` | 131,072 | $0.20 / $0.60 | Reasoning can exhaust the token budget |
 
 Prices are estimates used for cost tracking; confirm them against InferKit.
+
+### Helper, Fallback and Reasoning Models
+
+- **Helper model:** query planning and the grounding check always run on `HELPER_MODEL_ID` (Nemotron 3.5 Bolt E4B), whichever model the user picked. Reasoning models are too slow and spend the planner's small token budget thinking.
+- **Reasoning models:** entries flagged `reasoning: true` (MiniMax M3.1 Flash, Mistral Large 4, Nemotron 3 Ultra, Nemotron 3.5 Lightning) get `REASONING_TOKEN_MULTIPLIER = 4` times the effort's output budget, because hidden reasoning tokens count against it.
+- **Fallback:** if the selected model still returns no answer (reasoning exhausted even the larger budget), the turn is retried once on `FALLBACK_MODEL_ID` (the default model, Laguna XS 2.1) with the same evidence, streamed into the same message. The saved message records the model that actually answered, and cost is summed per model from the registry prices.
+- **Duration:** `/api/chat` has `maxDuration = 300` because reasoning models can take 15 to 150 seconds.
 
 ### Model Selection
 
@@ -503,5 +510,6 @@ export const SEARCH_CACHE_TTL_S = 300;     // 5-minute search cache TTL
 export const SEARCH_TIMEOUT_MS = 8000;     // 8-second search abort timeout
 export const RATE_PER_MIN = 20;            // requests/minute sliding window
 export const PLAN_DAILY_RATE = { free: 20, pro: 300 };  // requests/day by plan
+export const REASONING_TOKEN_MULTIPLIER = 4; // output budget multiplier for reasoning models
 export const MAX_INFLIGHT = 2;             // concurrent turns per user
 ```

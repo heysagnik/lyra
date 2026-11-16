@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runTurn } from "@/lib/agent/loop";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const chatRequestBodySchema = z.object({
   conversationId: z.string().uuid().optional(),

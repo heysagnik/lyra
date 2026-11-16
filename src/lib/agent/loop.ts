@@ -5,7 +5,8 @@ import {
 } from "ai";
 import { getLanguageModel } from "./llm";
 import { assemblePromptContext } from "./memory";
-import { EFFORT_BUDGET, calculateTurnCostUsd, type Effort } from "./budget";
+import { EFFORT_BUDGET, REASONING_TOKEN_MULTIPLIER, calculateTurnCostUsd, type Effort } from "./budget";
+import { HELPER_MODEL_ID, FALLBACK_MODEL_ID } from "@/lib/llm/models";
 import { planResearch } from "./planner";
 import { runResearch } from "./research";
 import { checkAnswer, judgeGrounding } from "./check";
@@ -95,8 +96,6 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
     const modelSelection = getLanguageModel(input.model);
     const modelName = modelSelection.modelName;
 
-    const maxTokensOut = effortBudget.maxTokensOut;
-
     const logError = (
       code: "INTERNAL" | "PROVIDER" | "GENERATION_EMPTY",
       msg: string,
@@ -121,7 +120,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
         try {
           write({ type: "data-meta", data: { conversationId, title: conversationTitle } });
 
-          const plan = await planResearch({ question: input.text, history, modelId: modelName });
+          const plan = await planResearch({ question: input.text, history, modelId: HELPER_MODEL_ID });
 
           let sources: SearchSource[] = [];
           let executedQueries: string[] = [];
@@ -150,23 +149,39 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             },
           ];
 
-          const generate = (messages: typeof baseMessages) =>
+          const fallbackSelection =
+            modelSelection.modelName !== FALLBACK_MODEL_ID ? getLanguageModel(FALLBACK_MODEL_ID) : null;
+          let answerSelection = modelSelection;
+          const usageLog: Array<{ model: string; usage: Usage | null }> = [];
+
+          const generate = (messages: typeof baseMessages, selection = answerSelection) =>
             streamText({
-              model: modelSelection.model,
+              model: selection.model,
               system: ctx.systemPrompt,
               messages,
               temperature: 0.3,
-              maxOutputTokens: maxTokensOut,
+              maxOutputTokens:
+                effortBudget.maxTokensOut *
+                (selection.definition.reasoning ? REASONING_TOKEN_MULTIPLIER : 1),
               maxRetries: 3,
               onError: ({ error }) => logError("PROVIDER", "Answer generation error", error),
             });
+
+          // A follow-up generation continues the same assistant message: drop its `start` chunk.
+          const continueMessage = <T,>(stream: ReadableStream<T>) =>
+            stream.pipeThrough(
+              new TransformStream<T, T>({
+                transform(chunk, controller) {
+                  if ((chunk as { type?: string }).type !== "start") controller.enqueue(chunk);
+                },
+              })
+            );
 
           const first = generate(baseMessages);
           writer.merge(first.toUIMessageStream());
 
           let finalText = "";
           let reasoning = "";
-          let usage: Usage | null = null;
           let truncated = false;
           try {
             finalText = await first.text;
@@ -175,24 +190,49 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             reasoning = (await first.reasoningText) ?? "";
           } catch {}
           try {
-            usage = await first.usage;
+            usageLog.push({ model: answerSelection.modelName, usage: await first.usage });
           } catch {}
           try {
             truncated = (await first.finishReason) === "length";
           } catch {}
 
+          // Selected model produced no answer (e.g. reasoning ate the whole token budget):
+          // retry once on the reliable fallback model instead of repeating the same failure.
+          if (!finalText.trim() && fallbackSelection) {
+            logError(
+              "PROVIDER",
+              "Selected model returned no answer; retrying on fallback model",
+              `model=${modelName} fallback=${fallbackSelection.modelName} truncated=${truncated}`
+            );
+            answerSelection = fallbackSelection;
+            const alt = generate(baseMessages, fallbackSelection);
+            writer.merge(continueMessage(alt.toUIMessageStream()));
+            try {
+              finalText = await alt.text;
+            } catch {}
+            try {
+              const altReasoning = await alt.reasoningText;
+              if (altReasoning) reasoning = reasoning ? `${reasoning}\n\n${altReasoning}` : altReasoning;
+            } catch {}
+            try {
+              usageLog.push({ model: fallbackSelection.modelName, usage: await alt.usage });
+            } catch {}
+            try {
+              truncated = (await alt.finishReason) === "length";
+            } catch {}
+          }
+
           const checked = checkAnswer(finalText, sources.length, truncated);
           finalText = checked.text;
           if (sources.length > 0 && checked.problems.length === 0) {
             const problem = await judgeGrounding({
-              modelId: modelName,
+              modelId: HELPER_MODEL_ID,
               question: input.text,
               answer: finalText,
               sources,
             });
             if (problem) checked.problems.push(problem);
           }
-          let repairUsage: Usage | null = null;
 
           if (checked.problems.length > 0) {
             const repair = generate([
@@ -200,15 +240,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               { role: "assistant" as const, content: finalText.trim() || "(no reply)" },
               { role: "user" as const, content: buildRepairMessage(checked.problems) },
             ]);
-            writer.merge(
-              repair.toUIMessageStream().pipeThrough(
-                new TransformStream({
-                  transform(chunk, controller) {
-                    if ((chunk as { type?: string }).type !== "start") controller.enqueue(chunk);
-                  },
-                })
-              )
-            );
+            writer.merge(continueMessage(repair.toUIMessageStream()));
             try {
               const repaired = checkAnswer(await repair.text, sources.length);
               if (repaired.text.trim() && repaired.problems.length <= checked.problems.length) {
@@ -222,7 +254,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
               if (rr) reasoning = reasoning ? `${reasoning}\n\n${rr}` : rr;
             } catch {}
             try {
-              repairUsage = await repair.usage;
+              usageLog.push({ model: answerSelection.modelName, usage: await repair.usage });
             } catch {}
           }
 
@@ -239,11 +271,17 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             write({ type: "text-end", id: "fallback" });
           }
 
-          const tokensIn = (usage?.inputTokens ?? 0) + (repairUsage?.inputTokens ?? 0);
-          const tokensOut = (usage?.outputTokens ?? 0) + (repairUsage?.outputTokens ?? 0);
-          const cachedIn =
-            (usage?.inputTokenDetails?.cacheReadTokens ?? 0) +
-            (repairUsage?.inputTokenDetails?.cacheReadTokens ?? 0);
+          const sum = (pick: (u: Usage) => number | undefined) =>
+            usageLog.reduce((n, e) => n + (e.usage ? (pick(e.usage) ?? 0) : 0), 0);
+          const tokensIn = sum((u) => u.inputTokens);
+          const tokensOut = sum((u) => u.outputTokens);
+          const cachedIn = sum((u) => u.inputTokenDetails?.cacheReadTokens);
+          const costUsd = usageLog
+            .reduce(
+              (n, e) => n + Number(calculateTurnCostUsd(e.model, e.usage?.inputTokens ?? 0, e.usage?.outputTokens ?? 0)),
+              0
+            )
+            .toFixed(6);
 
           try {
             await createMessage({
@@ -256,7 +294,7 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
                   ? executedQueries.map((query) => ({ toolName: "web_search", query }))
                   : undefined,
               sources: sources.length > 0 ? sources : undefined,
-              model: modelName,
+              model: answerSelection.modelName,
               tokensIn,
               tokensOut,
               latencyMs: Date.now() - startTime,
@@ -270,11 +308,11 @@ export async function runTurn({ request, input }: RunTurnOptions): Promise<Respo
             await recordUsageEvent({
               userId: user.id,
               conversationId,
-              model: modelName,
+              model: answerSelection.modelName,
               tokensIn,
               tokensOut,
               cachedIn,
-              costUsd: calculateTurnCostUsd(modelName, tokensIn, tokensOut),
+              costUsd,
             });
           } catch (e) {
             logError("INTERNAL", "Failed to record usage event", e);

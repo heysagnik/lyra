@@ -216,7 +216,7 @@ export function Composer({
       m.modelId === model ||
       ((model === "primary" || model === "fallback") && m.isDefaultPrimary)
   );
-  const modelLabel = activeModel?.label ?? "Nemotron 3.5 Bolt E4B";
+  const modelLabel = activeModel?.label ?? "Laguna XS 2.1";
 
   return (
     <div className="w-full">

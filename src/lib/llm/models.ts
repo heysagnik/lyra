@@ -18,6 +18,8 @@ export interface ModelDefinition {
     outPer1M: number;
   };
   isDefaultPrimary?: boolean;
+  /** Spends output tokens on hidden reasoning before the answer, so it needs a larger token budget. */
+  reasoning?: boolean;
 }
 
 export const PROVIDERS: Record<string, ProviderDefinition> = {
@@ -39,16 +41,16 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     description: "Fastest model, low first-token latency",
     contextWindow: 131072,
     pricing: { inPer1M: 0.04, outPer1M: 0.04 },
-    isDefaultPrimary: true,
   },
   {
     id: "laguna-xs-2-1",
     modelId: "laguna-xs-2-1",
     label: "Laguna XS 2.1",
     providerId: "inferkit",
-    description: "Code-focused model, very low latency",
+    description: "Fast, well-written answers; the default",
     contextWindow: 131072,
     pricing: { inPer1M: 0.05, outPer1M: 0.15 },
+    isDefaultPrimary: true,
   },
   {
     id: "minimax-m3-1-flash",
@@ -58,6 +60,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     description: "Fast MoE flash model, reliable under load",
     contextWindow: 131072,
     pricing: { inPer1M: 0.3, outPer1M: 1.2 },
+    reasoning: true,
   },
   {
     id: "mistral-large-4",
@@ -67,6 +70,7 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     description: "Large MoE model with reasoning",
     contextWindow: 131072,
     pricing: { inPer1M: 2.0, outPer1M: 6.0 },
+    reasoning: true,
   },
   {
     id: "nemotron-3-ultra-550b",
@@ -76,20 +80,31 @@ export const REGISTERED_MODELS: ModelDefinition[] = [
     description: "Largest reasoning model",
     contextWindow: 131072,
     pricing: { inPer1M: 2.0, outPer1M: 6.0 },
+    reasoning: true,
   },
   {
     id: "nemotron-3-5-lightning-30b",
     modelId: "nemotron-3-5-lightning-30b",
-    label: "Nemotron 3.5 Lightning 30B",
+    label: "Nemotron 3.5 Lightning 30B (experimental)",
     providerId: "inferkit",
-    description: "Mid-size reasoning MoE with fast decode",
+    description: "Experimental: reasoning can exhaust the token budget",
     contextWindow: 131072,
     pricing: { inPer1M: 0.2, outPer1M: 0.6 },
+    reasoning: true,
   },
 ];
 
 const DEFAULT_MODEL =
   REGISTERED_MODELS.find((m) => m.isDefaultPrimary) ?? REGISTERED_MODELS[0];
+
+/**
+ * Small, fast, non-reasoning model for the harness's own helper calls (query
+ * planning, grounding check), whatever model the user picked for the answer.
+ */
+export const HELPER_MODEL_ID = "nemotron-3-5-bolt-e4b";
+
+/** Reliable non-reasoning model used to retry when the selected model returns no answer. */
+export const FALLBACK_MODEL_ID = DEFAULT_MODEL.modelId;
 
 /** Unknown or legacy ids (e.g. a saved Groq/NIM choice) resolve to the default model. */
 export function resolveModelDefinition(modelIdOrAlias?: string): ModelDefinition {
