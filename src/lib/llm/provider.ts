@@ -1,4 +1,3 @@
-import { createGroq } from "@ai-sdk/groq";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { wrapLanguageModel } from "ai";
 import type { LanguageModel } from "ai";
@@ -13,46 +12,15 @@ import { channelReasoningMiddleware } from "./channels";
 
 export * from "./models";
 
-const providerInstanceCache = new Map<string, unknown>();
+let inferkit: ReturnType<typeof createOpenAICompatible> | undefined;
 
-function getGroqInstance() {
-  if (!providerInstanceCache.has("groq")) {
-    const env = getEnv();
-    const groq = createGroq({
-      apiKey: env.GROQ_API_KEY,
-      baseURL: PROVIDERS.groq.endpoint,
-    });
-    providerInstanceCache.set("groq", groq);
-  }
-  return providerInstanceCache.get("groq") as ReturnType<typeof createGroq>;
-}
-
-export function getGroqProvider() {
-  return getGroqInstance();
-}
-
-function getNvidiaNimInstance() {
-  if (!providerInstanceCache.has("nvidia-nim")) {
-    const env = getEnv();
-    if (!env.NVIDIA_API_KEY) {
-      throw new Error(
-        "[Lyra] NVIDIA_API_KEY is not set — required for NVIDIA NIM models."
-      );
-    }
-    const nim = createOpenAICompatible({
-      name: "nvidia-nim",
-      apiKey: env.NVIDIA_API_KEY,
-      baseURL: PROVIDERS["nvidia-nim"].endpoint,
-    });
-    providerInstanceCache.set("nvidia-nim", nim);
-  }
-  return providerInstanceCache.get("nvidia-nim") as ReturnType<
-    typeof createOpenAICompatible
-  >;
-}
-
-export function getNvidiaNimProvider() {
-  return getNvidiaNimInstance();
+export function getInferKitProvider() {
+  inferkit ??= createOpenAICompatible({
+    name: "inferkit",
+    apiKey: getEnv().INFERKIT_API_KEY,
+    baseURL: PROVIDERS.inferkit.endpoint,
+  });
+  return inferkit;
 }
 
 export function getLanguageModel(modelIdOrAlias?: string): {
@@ -62,29 +30,18 @@ export function getLanguageModel(modelIdOrAlias?: string): {
   provider: ProviderDefinition;
 } {
   const definition = resolveModelDefinition(modelIdOrAlias);
-  const provider = PROVIDERS[definition.providerId] || PROVIDERS.groq;
 
-  let model: LanguageModel;
-  if (definition.providerId === "nvidia-nim") {
-    // NIM passes Nemotron's inline reasoning-channel tokens (<|channel>thought
-    // … <channel|>) through as literal content — the endpoint does not parse
-    // them. The middleware rewrites those markers into proper reasoning stream
-    // parts so text/results never contain them and the UI gets a clean split.
-    model = wrapLanguageModel({
-      model: getNvidiaNimInstance()(definition.modelId),
-      middleware: channelReasoningMiddleware,
-    });
-  } else {
-    // Groq is the default provider. Its API parses harmony channels
-    // server-side (reasoning arrives in a separate field), so no middleware
-    // is needed.
-    model = getGroqInstance()(definition.modelId);
-  }
+  // Some models emit inline reasoning-channel tokens (<|channel>thought … <channel|>)
+  // as literal content; the middleware turns them into proper reasoning parts.
+  const model = wrapLanguageModel({
+    model: getInferKitProvider()(definition.modelId),
+    middleware: channelReasoningMiddleware,
+  });
 
   return {
     model,
     modelName: definition.modelId,
     definition,
-    provider,
+    provider: PROVIDERS.inferkit,
   };
 }

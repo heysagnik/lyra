@@ -27,7 +27,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Guard all other /api routes with Better Auth session cookie
   if (!isAuthenticated) {
     return NextResponse.json(
       { error: "Unauthorized: Valid session required" },

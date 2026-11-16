@@ -102,7 +102,6 @@ export async function executeSummarizeTask(
       return { success: false, updated: false };
     }
 
-    // Only summarize if lag is significant (>= 10 messages)
     if (conv.msgCount - conv.summarizedCount < 10) {
       return { success: true, updated: false };
     }

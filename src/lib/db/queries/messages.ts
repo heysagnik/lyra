@@ -65,7 +65,6 @@ export async function getRecentMessages(
   limit = 10
 ): Promise<Message[]> {
   const db = getDb();
-  // Fetch latest N messages ordered by createdAt desc, then return them in chronological asc order
   const rows = await db
     .select()
     .from(messages)

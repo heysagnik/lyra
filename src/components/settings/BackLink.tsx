@@ -4,11 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CaretLeftIcon } from "@phosphor-icons/react";
 
-/**
- * Returns to the last chat surface the user was on (persisted by
- * ChatContainer) instead of always going home — so leaving Settings
- * drops you back exactly where you left off.
- */
 export function BackLink() {
   const [href, setHref] = useState("/");
 
@@ -19,7 +14,6 @@ export function BackLink() {
         setHref(last);
       }
     } catch {
-      // storage unavailable — fall back to "/"
     }
   }, []);
 

@@ -3,15 +3,10 @@
 import { CircleNotchIcon, GlobeIcon } from "@phosphor-icons/react";
 
 export interface ToolBadgeProps {
-  /** Every distinct query executed this turn, in order */
   queries?: string[];
   isComplete?: boolean;
 }
 
-/**
- * Streaming/search status line. Shows the running count when a turn
- * searched more than once (the ReAct loop), plus the latest query.
- */
 export function ToolBadge({ queries, isComplete = false }: ToolBadgeProps) {
   const list = (queries ?? []).filter(Boolean);
   const latest = list[list.length - 1];

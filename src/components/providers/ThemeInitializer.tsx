@@ -16,7 +16,6 @@ export function ThemeInitializer() {
         document.documentElement.dataset.theme = saved;
       }
     } catch {
-      // ignore
     }
   }, []);
 

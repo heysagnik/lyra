@@ -21,9 +21,6 @@ function getHostname(url: string): string {
   }
 }
 
-/**
- * Interactive hoverable source citation card.
- */
 function CitationHoverCard({
   source,
   index,
@@ -99,14 +96,8 @@ function CitationHoverCard({
   );
 }
 
-/**
- * Safely converts [1], [2], [1, 2] in text into markdown links for citations,
- * preserving code blocks and backticks intact.
- */
 export function linkifyCitations(text: string, sourcesCount: number): string {
   if (!text || sourcesCount <= 0) return text;
-  // Some models regress to the internal 【7†L1-L3】 citation token format;
-  // normalize to plain ASCII [7] before linkifying (skip code spans).
   const parts = text.split(/(```[\s\S]*?```|`[^`]*?`)/g);
   return parts
     .map((part, index) => {
@@ -143,7 +134,6 @@ function CodeBlock({ className, children }: CodeBlockProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // ignore
     }
   };
 

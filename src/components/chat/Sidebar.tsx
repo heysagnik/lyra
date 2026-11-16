@@ -52,7 +52,6 @@ export const Sidebar = memo(function Sidebar({
       : "free";
   const initial = (name?.trim()?.[0] ?? "L").toUpperCase();
 
-  // Stable so memoized ConversationItems skip re-renders while streaming
   const handleSelectConversation = useCallback(
     (id: string) => {
       if (onSelectConversation) {
@@ -78,7 +77,6 @@ export const Sidebar = memo(function Sidebar({
     getItemKey: (index) => conversations[index].id,
   });
 
-  // Global shortcuts: Ctrl+K starts a new chat, Ctrl+Shift+, opens settings
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {

@@ -12,10 +12,9 @@ const envSchema = z.object({
     .url("BETTER_AUTH_URL must be a valid URL"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
-  GROQ_API_KEY: z
-    .string({ required_error: "GROQ_API_KEY is required" })
-    .min(1, "GROQ_API_KEY is required"),
-  NVIDIA_API_KEY: z.string().optional().default(""),
+  INFERKIT_API_KEY: z
+    .string({ required_error: "INFERKIT_API_KEY is required" })
+    .min(1, "INFERKIT_API_KEY is required"),
   TINYFISH_API_KEY: z
     .string({ required_error: "TINYFISH_API_KEY is required" })
     .min(1, "TINYFISH_API_KEY is required"),
@@ -37,8 +36,7 @@ export function getEnv(): Env {
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
-    NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
+    INFERKIT_API_KEY: process.env.INFERKIT_API_KEY,
     TINYFISH_API_KEY: process.env.TINYFISH_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   });
@@ -54,8 +52,4 @@ export function getEnv(): Env {
 
   parsedEnv = result.data;
   return parsedEnv;
-}
-
-export function validateEnvOrThrow(): void {
-  getEnv();
 }

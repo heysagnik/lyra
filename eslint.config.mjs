@@ -40,7 +40,6 @@ const eslintConfig = [
       "src/lib/tools/**",
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
-      "vitest.config.ts",
     ],
     rules: {
       "no-restricted-imports": "off",

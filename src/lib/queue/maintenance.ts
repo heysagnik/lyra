@@ -4,16 +4,6 @@ import {
   rollupDailyUsage,
 } from "@/lib/db/queries/usage";
 
-export interface UsageMaintenanceRunner {
-  run: typeof runUsageMaintenance;
-}
-
-let testRunnerOverride: UsageMaintenanceRunner | null = null;
-
-export function setUsageMaintenanceForTesting(override: UsageMaintenanceRunner | null) {
-  testRunnerOverride = override;
-}
-
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -40,11 +30,9 @@ export async function runUsageMaintenance(now = new Date()): Promise<{
   return { rolledUp: targets, pruned };
 }
 
-/** Scheduled wrapper — records failures to the job_failures DLQ. */
 export async function executeUsageMaintenanceTask(now = new Date()): Promise<void> {
   try {
-    const runner = testRunnerOverride?.run || runUsageMaintenance;
-    await runner(now);
+    await runUsageMaintenance(now);
   } catch (error) {
     try {
       await recordJobFailure({
@@ -53,19 +41,17 @@ export async function executeUsageMaintenanceTask(now = new Date()): Promise<voi
         error: error instanceof Error ? error.message : String(error),
       });
     } catch {
-      // DLQ write failed — nothing further to do in-process
     }
   }
 }
 
-/** Process-lifecycle guard so hot reloads / multiple imports start one loop. */
 const MAINTENANCE_STARTED = Symbol.for("lyra.usageMaintenanceLoop");
 type MaintenanceGlobal = typeof globalThis & { [MAINTENANCE_STARTED]?: boolean };
 
 /**
  * Start the nightly loop: first tick at the next UTC midnight, then every
  * 24 hours (re-anchored each tick). In-process by design (zero external
- * schedulers per AGENT.md). Timers are unref'd so they never hold the
+ * schedulers). Timers are unref'd so they never hold the
  * process open on their own.
  */
 export function startUsageMaintenanceLoop(): void {

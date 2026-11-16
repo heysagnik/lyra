@@ -10,7 +10,6 @@ import type { AgentChatMessage } from "@/lib/api/use-agent-chat";
 export interface MessageListProps {
   messages: AgentChatMessage[];
   isStreaming: boolean;
-  /** True while the conversation's messages are being fetched (first visit) */
   isLoading?: boolean;
   onRegenerate?: () => void;
 }
@@ -56,8 +55,6 @@ export function MessageList({
     const isNearBottom = distanceFromBottom < 100;
 
     isUserScrollingRef.current = !isNearBottom;
-    // Show the pill only after the user has scrolled up roughly 3–4
-    // conversation turns (~1200px) — small upward drifts keep it hidden.
     setShowScrollBottomPill(distanceFromBottom > 1200);
   };
 
@@ -82,7 +79,6 @@ export function MessageList({
     };
   }, []);
 
-  // Scroll on new messages or stream chunks unless user scrolled up
   useEffect(() => {
     if (!isUserScrollingRef.current) {
       scrollToBottom(false);
@@ -104,7 +100,6 @@ export function MessageList({
     return <EmptyState />;
   }
 
-  // Render up to last 200 messages for smooth performance
   const visibleMessages = messages.slice(-200);
 
   return (

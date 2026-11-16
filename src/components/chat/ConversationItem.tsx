@@ -7,9 +7,7 @@ import { PencilIcon, ShareFatIcon, TrashIcon, CheckIcon, XIcon, DotsThreeIcon } 
 import { ActionSheet } from "./ActionSheet";
 import type { Conversation } from "@/types";
 
-/** Long-press duration before the options sheet opens on touch */
 const LONG_PRESS_MS = 500;
-/** Movement past this distance cancels the long-press (it's a scroll, not a hold) */
 const LONG_PRESS_SLOP_PX = 10;
 
 export interface ConversationItemProps {
@@ -38,7 +36,6 @@ export const ConversationItem = memo(function ConversationItem({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
-  // Long-press tracking (touch only — desktop has the hover-revealed ⋯ button)
   const pressTimer = useRef<number | null>(null);
   const pressStart = useRef<{ x: number; y: number } | null>(null);
   const longPressedRef = useRef(false);
@@ -58,11 +55,9 @@ export const ConversationItem = memo(function ConversationItem({
     pressTimer.current = window.setTimeout(() => {
       pressTimer.current = null;
       longPressedRef.current = true;
-      // Light haptic tick where the API exists
       try {
         navigator.vibrate?.(10);
       } catch {
-        // ignore
       }
       setSheetOpen(true);
     }, LONG_PRESS_MS);
@@ -75,7 +70,6 @@ export const ConversationItem = memo(function ConversationItem({
       Math.abs(e.clientX - start.x) > LONG_PRESS_SLOP_PX ||
       Math.abs(e.clientY - start.y) > LONG_PRESS_SLOP_PX
     ) {
-      // Finger is scrolling the list, not holding the item
       clearPress();
     }
   };
@@ -117,7 +111,6 @@ export const ConversationItem = memo(function ConversationItem({
         `${window.location.origin}/share/${conversation.id}`
       );
     } catch {
-      // ignore
     }
   };
 
@@ -232,7 +225,6 @@ export const ConversationItem = memo(function ConversationItem({
       onPointerUp={clearPress}
       onPointerCancel={handlePointerCancel}
       onContextMenu={(e) => {
-        // Suppress the native text-selection callout a long-press would open
         if (longPressedRef.current) e.preventDefault();
       }}
     >

@@ -1,6 +1,3 @@
-// Set a user's plan tier. Usage:
-//   node --env-file=.env scripts/set-plan.mjs <email> <free|pro>
-// Plans are changed server-side only; nothing client-facing can set them.
 const email = process.argv[2];
 const plan = process.argv[3];
 

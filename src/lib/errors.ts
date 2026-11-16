@@ -1,6 +1,3 @@
-/**
- * Standard AppError and Result types across domain boundaries.
- */
 
 export type AppErrorCode =
   | "AUTH"

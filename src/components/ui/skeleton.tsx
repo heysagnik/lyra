@@ -2,18 +2,10 @@ import type { CSSProperties } from "react";
 
 export interface SkeletonProps {
   className?: string;
-  /** Stagger in ms. Offsets the shimmer sweep (and any caller-applied fade-in). */
   delay?: number;
-  /** Passthrough for measured widths etc. */
   style?: CSSProperties;
 }
 
-/**
- * One shimmering placeholder block. Decorative only — pair with
- * `aria-busy` on the loading region and keep real content announced.
- * The stagger flows through `--skeleton-delay`, which `.skeleton::after`
- * picks up in globals.css.
- */
 export function Skeleton({ className = "", delay = 0, style }: SkeletonProps) {
   return (
     <div

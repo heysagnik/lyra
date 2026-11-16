@@ -70,7 +70,6 @@ export async function recordUsageEvent(data: {
 
 export async function rollupDailyUsage(day: string): Promise<void> {
   const db = getDb();
-  // Aggregate from usageEvents for given date into usageDaily
   await db.execute(sql`
     INSERT INTO usage_daily (day, user_id, turns, tokens_in, tokens_out, cost_usd)
     SELECT
@@ -139,32 +138,11 @@ export async function countJobFailures(since: Date): Promise<number> {
   return rows[0]?.count ?? 0;
 }
 
-export async function getRecentJobFailures(
-  limit = 20
-): Promise<JobFailure[]> {
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(jobFailures)
-    .orderBy(desc(jobFailures.createdAt))
-    .limit(limit);
-
-  return rows.map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    payload: r.payload,
-    error: r.error,
-    attempts: r.attempts,
-    createdAt: r.createdAt,
-  }));
-}
-
 export async function getUserUsageStats(userId: string): Promise<UserUsageStats> {
   const db = getDb();
   const startOfDay = new Date();
   startOfDay.setUTCHours(0, 0, 0, 0);
 
-  // Aggregate today's usage from usageEvents
   const todayAgg = await db
     .select({
       turns: sql<number>`COUNT(*)::int`,

@@ -11,10 +11,6 @@ interface AuthShellProps {
   children: ReactNode;
 }
 
-/**
- * Full-page auth layout: wordmark top-left, centered welcome column,
- * legal line at the bottom.
- */
 export function AuthShell({ title, subtitle, footer, children }: AuthShellProps) {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-canvas)]">

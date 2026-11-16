@@ -1,6 +1,3 @@
-/**
- * Domain types for Lyra chat agent.
- */
 
 export type Role = "user" | "assistant" | "tool";
 
@@ -89,9 +86,7 @@ export interface TurnInput {
   conversationId?: string;
   text: string;
   search?: boolean;
-  /** Configured model ID or alias (e.g. "primary", "fallback", "llama-3.3-70b"). */
   model?: string;
-  /** Effort tier controlling tool iterations and output ceiling. */
   effort?: "low" | "standard" | "max";
   timeZone?: string;
 }

@@ -10,15 +10,9 @@ import type { AgentChatMessage } from "@/lib/api/use-agent-chat";
 export interface MessageBubbleProps {
   message: AgentChatMessage;
   isLatestStreaming?: boolean;
-  /** Wire regenerate only for the newest assistant turn */
   onRegenerate?: () => void;
 }
 
-/**
- * Collapsible reasoning panel — the model's thinking channel, kept out of the
- * answer. Auto-opens while the model is still thinking, folds once the answer
- * starts; the reader can reopen it any time.
- */
 function ThinkingPanel({
   reasoning,
   isStreaming,
@@ -144,8 +138,6 @@ export function MessageBubble({
       "toolInvocation" in p ||
       "toolCallId" in p
   );
-  // Every distinct search query this turn: persisted tool calls plus the
-  // live streaming tool part, deduped in order.
   const toolQueries: string[] = [];
   const pushQuery = (q: unknown) => {
     if (typeof q === "string" && q.trim() && !toolQueries.includes(q.trim())) {

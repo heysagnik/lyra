@@ -91,7 +91,6 @@ export default function AccountSettingsPage() {
   const [accounts, setAccounts] = useState<LinkedAccount[] | null>(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
-  // Current session's token, used to flag "This device"
   const currentToken =
     (session as unknown as { session?: { token?: string } } | undefined)?.session?.token;
 

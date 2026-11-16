@@ -38,12 +38,10 @@ export function ChatContainer({
     setIsLayoutReady(true);
   }, []);
 
-  // Remember the last chat surface so Settings' Back link can return here
   useEffect(() => {
     try {
       sessionStorage.setItem("lyra:lastChatPath", window.location.pathname);
     } catch {
-      // storage unavailable
     }
   }, [activeId]);
 
@@ -113,7 +111,6 @@ export function ChatContainer({
     onConversationCreated: handleConversationCreated,
   });
 
-  // Revalidate conversation data after streaming completes to sync persisted toolCalls & sources
   useEffect(() => {
     if (!isStreaming && activeId) {
       void queryClient.invalidateQueries({ queryKey: ["conversation", activeId] });
@@ -121,7 +118,6 @@ export function ChatContainer({
     }
   }, [isStreaming, activeId, queryClient]);
 
-  // Surface generation errors through the global toast (keeps the Retry action)
   useEffect(() => {
     if (!chatError) return;
     const message = chatError.message || "An error occurred during generation";
@@ -353,7 +349,6 @@ export function ChatContainer({
                             setShared(true);
                             setTimeout(() => setShared(false), 2000);
                           } catch {
-                            // ignore
                           }
                         },
                       },
@@ -409,7 +404,6 @@ export function ChatContainer({
                             setShared(true);
                             setTimeout(() => setShared(false), 2000);
                           } catch {
-                            // ignore
                           }
                         }}
                         className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left text-sm font-medium text-[var(--color-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--color-hover)] active:scale-[0.98]"
@@ -454,7 +448,6 @@ export function ChatContainer({
                     setShared(true);
                     setTimeout(() => setShared(false), 2000);
                   } catch {
-                    // ignore
                   }
                 }}
                 aria-label="Share chat"

@@ -24,7 +24,6 @@ export interface ComposerProps {
   onStop: () => void;
   retryAfterSeconds?: number;
   isModelLocked?: boolean;
-  /** Model recorded on the locked conversation, shown while switching is disabled. */
   lockedModel?: string | null;
 }
 
@@ -39,7 +38,6 @@ export const EFFORT_LEVELS: { id: EffortLevel; label: string; index: number }[] 
   { id: "max", label: "High", index: 2 },
 ];
 
-/** Text-based file kinds the text-only LLM can actually consume. */
 const ATTACHABLE_TYPES =
   /^(text\/|application\/(json|xml|javascript|typescript|x-yaml|yaml))$/;
 const MAX_ATTACH_CHARS = 50_000;
@@ -79,7 +77,6 @@ export function Composer({
         }
       }
     } catch {
-      // ignore
     }
     return "primary";
   });
@@ -119,7 +116,6 @@ export function Composer({
     setAttachments(next);
   };
 
-  // Restore persisted effort; model is restored synchronously in useState
   useEffect(() => {
     try {
       const savedEffort = localStorage.getItem(EFFORT_STORAGE_KEY);
@@ -127,12 +123,9 @@ export function Composer({
         setEffort(savedEffort);
       }
     } catch {
-      // ignore
     }
   }, []);
 
-  // While a conversation locks the model, display the model that conversation
-  // was created with (its first message records it) instead of the global pick.
   useEffect(() => {
     if (!isModelLocked || !lockedModel) return;
     const found = REGISTERED_MODELS.find(
@@ -146,11 +139,9 @@ export function Composer({
     try {
       localStorage.setItem(EFFORT_STORAGE_KEY, nextEffort);
     } catch {
-      // ignore
     }
   };
 
-  // Close the picker on outside click
   useEffect(() => {
     if (!pickerOpen) return;
     const handler = (e: PointerEvent) => {
@@ -160,7 +151,6 @@ export function Composer({
     return () => window.removeEventListener("pointerdown", handler);
   }, [pickerOpen]);
 
-  // Handle 429 countdown
   useEffect(() => {
     if (!retryAfterSeconds || retryAfterSeconds <= 0) {
       setCountdown(undefined);
@@ -179,7 +169,6 @@ export function Composer({
     return () => clearInterval(interval);
   }, [retryAfterSeconds]);
 
-  // Autosize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -385,7 +374,6 @@ export function Composer({
                               // refactor can never orphan the saved choice.
                               localStorage.setItem(MODEL_STORAGE_KEY, m.modelId);
                             } catch {
-                              // ignore
                             }
                             setPickerOpen(false);
                           }}

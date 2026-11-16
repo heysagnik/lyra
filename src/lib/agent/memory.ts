@@ -16,8 +16,7 @@ export interface AssembledContext {
 
 export async function assemblePromptContext(
   userId: string,
-  conversationId?: string,
-  searchEnabled?: boolean
+  conversationId?: string
 ): Promise<AssembledContext> {
   let summary: string | null = null;
   let title: string | undefined;
@@ -51,12 +50,11 @@ export async function assemblePromptContext(
       });
   } catch {}
 
-  const effectiveSearch = searchEnabled ?? searchDefault;
   const memories = await getUserMemories(userId, MEMORY_MAX_ITEMS);
   if (memories.length > 0) {
     void touchMemories(memories.map((m) => m.id));
   }
-  const systemPrompt = assembleSystemPrompt(memories, summary, effectiveSearch, pastTopics);
+  const systemPrompt = assembleSystemPrompt(memories, summary, pastTopics);
 
   const window = recentMessages
     .filter((m) => m.role === "user" || m.role === "assistant")

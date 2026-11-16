@@ -38,7 +38,6 @@ export function SearchPalette({
     setActiveIndex(0);
   }, [query]);
 
-  // Keep the active row in view while navigating with the keyboard
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(
       `[data-index="${activeIndex}"]`
@@ -51,7 +50,6 @@ export function SearchPalette({
       e.preventDefault();
       onClose();
     } else if (e.key === "Tab") {
-      // Trap focus inside the modal palette
       const container = dialogRef.current;
       if (!container) return;
       const focusable = container.querySelectorAll<HTMLElement>(

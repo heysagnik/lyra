@@ -39,7 +39,6 @@ export default async function SharedChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  // Conversation ids are UUIDs; anything else is a 404, not a DB error
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     notFound();
   }

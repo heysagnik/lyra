@@ -21,7 +21,6 @@ export interface AgentChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
-  /** Model reasoning (thinking channel) — rendered as a collapsible panel. */
   reasoning?: string;
   parts?: ChatMessagePart[];
   sources?: SearchSource[];
@@ -109,9 +108,6 @@ export function useAgentChat({
     }
   }, [conversationId, setMessages]);
 
-  // Sync initial messages when conversation changes. Convert the persisted
-  // { content } shape into UIMessage { parts } so mappedMessages can derive
-  // text from them.
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
       const initialMap: Record<string, SearchSource[]> = {};
@@ -149,7 +145,6 @@ export function useAgentChat({
       modelOverride?: string,
       effortOverride?: "low" | "standard" | "max"
     ) => {
-      // Freeze any active sources into the last assistant message before clearing
       if (currentSources.length > 0) {
         setMessages((prev) => {
           const lastAssist = [...prev].reverse().find((m) => m.role === "assistant");

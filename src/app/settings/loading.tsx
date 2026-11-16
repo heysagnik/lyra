@@ -3,11 +3,6 @@ import { Skeleton, SkeletonLine, rowWidth } from "@/components/ui/skeleton";
 const NAV_ITEMS = 4;
 const CARD_ROWS = [2, 3];
 
-/**
- * A real settings card: rounded surface panel with divided rows, each row
- * a small label line above a wider content line (like the memory/session
- * lists on the actual pages).
- */
 function CardSkeleton({ rows, baseDelay }: { rows: number; baseDelay: number }) {
   return (
     <div
@@ -30,12 +25,6 @@ function CardSkeleton({ rows, baseDelay }: { rows: number; baseDelay: number }) 
   );
 }
 
-/**
- * Instant settings shell shown while the (force-dynamic) settings tree
- * renders on the server. Mirrors the real layout — mobile back link and
- * nav pills, desktop rail with icon + label rows, content as heading +
- * stacked cards — so nothing jumps when the page replaces it.
- */
 export default function SettingsLoading() {
   return (
     <div

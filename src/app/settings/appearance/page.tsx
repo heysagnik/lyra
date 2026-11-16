@@ -15,7 +15,6 @@ const STORAGE_KEY = "lyra-theme";
 const LIGHT = { canvas: "#fcfcfc", surface: "#ffffff", text: "#171717", border: "rgba(0,0,0,0.08)", pillBg: "rgba(23,23,23,0.06)", lineBg: "rgba(23,23,23,0.12)" };
 const DARK = { canvas: "#161616", surface: "#1c1c1c", text: "#ededed", border: "rgba(255,255,255,0.09)", pillBg: "rgba(237,237,237,0.07)", lineBg: "rgba(237,237,237,0.12)" };
 
-/** A miniature chat window drawn with the real theme colours. */
 function MiniWindow({ t }: { t: typeof LIGHT }) {
   return (
     <div
@@ -79,7 +78,6 @@ export default function AppearanceSettingsPage() {
         document.documentElement.dataset.theme = saved;
       }
     } catch {
-      // ignore
     }
   }, []);
 
@@ -89,7 +87,6 @@ export default function AppearanceSettingsPage() {
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // ignore
     }
   };
 

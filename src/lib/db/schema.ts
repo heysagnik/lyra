@@ -16,16 +16,12 @@ import {
   date,
 } from "drizzle-orm/pg-core";
 
-/**
- * Better Auth Core Tables
- */
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
-  /** Billing tier: "free" (default) or "pro"; changed server-side only. */
   plan: text("plan").notNull().default("free"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -71,18 +67,12 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/**
- * Custom vector type for pgvector embedding column (NULL in v1, reserved for v1.1)
- */
 export const vector768 = customType<{ data: number[] | null }>({
   dataType() {
     return "vector(768)";
   },
 });
 
-/**
- * Conversations table
- */
 export const conversations = pgTable(
   "conversations",
   {
@@ -133,9 +123,6 @@ export const messages = pgTable(
   ]
 );
 
-/**
- * Memories table — T1 durable user memory (survives conversation delete)
- */
 export const memories = pgTable(
   "memories",
   {
@@ -161,9 +148,6 @@ export const memories = pgTable(
   ]
 );
 
-/**
- * Usage events table — written inline per turn; rolled up nightly
- */
 export const usageEvents = pgTable(
   "usage_events",
   {
@@ -179,15 +163,10 @@ export const usageEvents = pgTable(
   },
   (table) => [
     index("usage_events_user_created_idx").on(table.userId, table.createdAt.desc()),
-    // Powers the per-model rolling OTPM sum (sumRecentOutputTokens); without
-    // it every turn scans the whole table on (model, created_at).
     index("usage_events_model_created_idx").on(table.model, table.createdAt.desc()),
   ]
 );
 
-/**
- * Usage daily table — rollup target (nightly job)
- */
 export const usageDaily = pgTable(
   "usage_daily",
   {
@@ -201,9 +180,6 @@ export const usageDaily = pgTable(
   (table) => [primaryKey({ columns: [table.day, table.userId] })]
 );
 
-/**
- * Job failures table — dead-letter audit, surfaced in /api/health
- */
 export const jobFailures = pgTable("job_failures", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   kind: text("kind").notNull(),

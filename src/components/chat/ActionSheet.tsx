@@ -12,17 +12,11 @@ export interface SheetAction {
 }
 
 export interface ActionSheetProps {
-  /** Optional context line above the actions (e.g. the conversation title) */
   title?: string;
   actions: SheetAction[];
   onClose: () => void;
 }
 
-/**
- * Mobile bottom sheet: every dropdown menu that is a floating popover on
- * desktop opens as a sheet anchored to the bottom edge on touch screens,
- * where hover-revealed and absolutely-positioned menus don't work.
- */
 export function ActionSheet({ title, actions, onClose }: ActionSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +29,6 @@ export function ActionSheet({ title, actions, onClose }: ActionSheetProps) {
       e.preventDefault();
       onClose();
     } else if (e.key === "Tab") {
-      // Trap focus inside the modal sheet
       const container = sheetRef.current;
       if (!container) return;
       const focusable = container.querySelectorAll<HTMLElement>("button");

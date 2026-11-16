@@ -13,10 +13,6 @@ function getHostname(url: string): string {
   }
 }
 
-/**
- * Catalogued source entries — every citation is a charted object with a
- * Numbered citation chips with their origin hostname.
- */
 export function SourcesRow({ sources }: SourcesRowProps) {
   if (!sources || sources.length === 0) return null;
 

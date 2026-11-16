@@ -6,11 +6,6 @@ const ASSISTANT_PARAGRAPHS = [
   ["76%", "52%"],
 ];
 
-/**
- * The conversation area: a right-aligned user turn, then assistant turns
- * as text-width lines — mirroring how MessageBubble actually renders
- * markdown, not abstract gray blocks.
- */
 export function ChatMessagesSkeleton() {
   return (
     <div className="h-full overflow-hidden px-3 py-6 sm:px-4">
@@ -45,7 +40,6 @@ export function ChatMessagesSkeleton() {
   );
 }
 
-/** Sidebar list: transparent rows holding a title-width line, like the real list */
 function SidebarListSkeleton() {
   return (
     <div className="min-h-0 flex-1 overflow-hidden px-3">
@@ -69,12 +63,6 @@ function SidebarListSkeleton() {
   );
 }
 
-/**
- * Full chat shell for route-level loading (root loading.tsx). Mirrors the
- * real ChatContainer layout — sidebar, header, messages, composer — so
- * nothing jumps when the page replaces it. Everything except the
- * `aria-busy` announcement is decorative.
- */
 export function ChatShellSkeleton() {
   return (
     <div
